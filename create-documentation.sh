@@ -1,9 +1,9 @@
 #!/bin/dash
 
-# All documentation should either go in the cake source file as part of the --help option 
+# All documentation should either go in the executable file as part of the --help option 
 # or in the help2man.include file.  This script then will parse that information to 
-# create the manual page and the README file.  
-# Do not edit cake.1 or README explicilty. Let this script create them.
+# create the manual page
+# Do not edit the *.1 files explicilty. Let this script create them.
 
 # Refuse to create documentation on an unclean repository
 if [ $(git clean -d -n | wc -l) != 0 ]; then
@@ -16,8 +16,12 @@ fi
 
 for path in scripts/pkgit-*; do
     script=$(basename $path)
-    echo $script
-#    help2man --output=$SCRIPT.1 --no-info --include=$SCRIPT.help2man.include 
-#    nroff -c -mandoc cake.1 | col -b > README
+    echo Creating documentation for $script
+    if [ -e $script.help2man.include ]; then
+        extra_includes="--include=$scirpt.help2man.include"
+    else
+        extra_includs=""
+    fi
+    help2man --output=$script.1 --no-info $extra_includes $path
 done    
 

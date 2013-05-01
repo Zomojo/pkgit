@@ -2,8 +2,29 @@
 
 # Write a skeleton spec file 
 
+usage()
+{
+    echo "$(basename $0)  TODO: write help"
+}
+
+
+if [ "$1" = "--help" ] || [ "$1" = "-h" ] || [ "$1" = "-?" ]; then
+    usage
+fi
+
+if [ "$1" = "--version" ]; then
+    echo 0.0.0-1
+fi
+
+
+
 project_name=$(basename $PWD)
 spec_filename=${project_name}.spec
+
+if [ -e $spec_filename ]; then
+    echo $spec_filename already exists
+    exit 0
+fi
 
 cat >$spec_filename  <<EOF
 Summary: $project_name - A very simple package

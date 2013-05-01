@@ -2,14 +2,22 @@
 
 usage()
 {
-    echo "Usage: pkgit-greatest-version"
+    echo "Usage: $(basename $0)"
     echo "Find the greatest version number tagged in the local repository."
     echo "For example, if the repository contains tags pj_one.1.0.0-1 and vv.1.0.2-1, "
     echo "then the greatest version number is 1.0.2-1."
 }
+
+echo "%""$1""%"
+
+if [ "$1" = "--version" ]; then
+    echo 0.0.0-0
+    exit
+fi
     
-if [ -n "$1" ] ; then
+if [ "$1" = "--help" ] || [ "$1" = "-h" ] || [ "$1" = "-?" ]; then
     usage
+    exit
 fi    
 
 

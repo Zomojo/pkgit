@@ -8,11 +8,16 @@
 
 usage()
 {
-    echo "pkgit-tag-next  TODO: write help"
+    echo "$(basename $0)  TODO: write help"
 }
 
 
 if [ "$1" = "--help" ] || [ "$1" = "-h" ] || [ "$1" = "-?" ]; then
     usage
 fi    
+
+if [ "$1" = "--version" ]; then
+    echo 0.0.0-1
+fi
+
 
