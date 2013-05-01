@@ -1,0 +1,15 @@
+#!/bin/dash
+
+usage()
+{
+    echo "Usage: pkgit-greatest-version"
+    echo "Find the greatest version number tagged in the local repository."
+    echo "For example, if the repository contains tags pj_one.1.0.0-1 and vv.1.0.2-1, "
+    echo "then the greatest version number is 1.0.2-1."
+}
+    
+if [ -n "$1" ] ; then
+    usage
+fi    
+
+

@@ -1,0 +1,41 @@
+#!/bin/dash
+
+# Write a skeleton spec file 
+
+project_name=$(basename $PWD)
+spec_filename=${project_name}.spec
+
+cat >$spec_filename  <<EOF
+Summary: $project_name - A very simple package
+Name: $project_name
+Version: %{version_base}
+Release: %{version_release}%{?org_tag}%{?dist}
+Source: %{name}-%{version}.tgz
+License: Proprietary, Redistribution not allowed
+Group: System/Libraries
+Buildroot: %_tmppath/%{name}-%{version}
+BuildArch: %{arch}
+
+%description
+two - a package that exists to test out building packages.  Remove it ASAP. :)
+
+
+%prep
+%setup
+
+%build
+test %{buildroot} != "/" && rm -rf %{buildroot}
+
+%install
+mkdir -p %{buildroot}%{_bindir}
+mkdir -p %{buildroot}%{_sysconfdir}/
+
+install -m 0644 *.txt %{buildroot}%{_sysconfdir}/
+
+%clean
+test "%{buildroot}" != "/" && rm -rf %{buildroot}
+
+%files
+%defattr(-,root,root)
+%config(noreplace)%attr(0644,-,-)%{_sysconfdir}/*.txt
+EOF
