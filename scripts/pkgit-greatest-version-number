@@ -4,11 +4,10 @@ usage()
 {
     echo "Usage: $(basename $0)"
     echo "Find the greatest version number tagged in the local repository."
+    echo "It is a precondition that the repository has tags of the form packagename.version-release"
     echo "For example, if the repository contains tags pj_one.1.0.0-1 and vv.1.0.2-1, "
-    echo "then the greatest version number is 1.0.2-1."
+    echo "then the greatest version number is 1.0.2 with a release numer of 1."
 }
-
-echo "%""$1""%"
 
 if [ "$1" = "--version" ]; then
     echo 0.0.0-0
@@ -20,4 +19,32 @@ if [ "$1" = "--help" ] || [ "$1" = "-h" ] || [ "$1" = "-?" ]; then
     exit
 fi    
 
+
+taglist=$(git tag -l '*-*.*.*-*' | rev | cut -d- -f-2 |rev |tr '\n' ' ')
+
+major=0
+minor=0
+revision=0
+release=0
+
+for tag in $taglist; do
+    current_version=$(echo $tag |cut -d- -f1)
+    current_major=$(echo $current_version | cut -d. -f1)
+    if [ $current_major -ge $major ]; then
+        major=$current_major
+        current_minor=$(echo $current_version | cut -d. -f2)
+        if [ $current_minor -ge $minor ]; then 
+            minor=$current_minor
+            current_revision=$(echo $current_version | cut -d. -f3)
+            if [ $current_revision -ge $revision ]; then
+                revision=$current_revision
+                current_release=$(echo $tag |cut -d- -f2) 
+                if [  $current_release -gt $release ]; then
+                    release=$current_release
+                fi
+            fi
+        fi
+    fi
+done
+echo $major.$minor.$revision-$release
 
