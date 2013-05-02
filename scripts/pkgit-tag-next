@@ -8,17 +8,87 @@
 
 usage()
 {
-    echo "$(basename $0)  TODO: write help"
+    echo "Usage: $(basename $0) [-h|-?|--help] [--debug] [--version] [-v|--verbose] [-p|--pretend] [-m|--message=<meaningful message>] <package_name>"
+    echo "Tags the next version by looking at the last tagged version, and adds one to the last dotted element. Obviously only works if version numbers are reasonably standard."
 }
 
-if [ "$1" = "--help" ] || [ "$1" = "-h" ] || [ "$1" = "-?" ]; then
-    usage
-    exit
+verbose_echo()
+{
+    if [ -n "$verbose" ]; then
+        echo "$@"
+    fi
+}
+
+# Parse command line arguments. We accept the usual GNU short and long args and convert them to space separated arguments
+# Note that we use `"$@"' to let each command-line parameter expand to a separate word. The quotes around `$@' are essential!
+# We need TEMP as the `eval set --' would nuke the return value of getopt.
+TEMP=$(getopt -s sh -o hvpm: -l "help,debug,version,verbose,pretend,message:" -n "pkgit-tag-next" -- "$@")
+if [ $? != 0 ] ; then echo "Could not parse command line options..." >&2 ; usage ; fi
+eval set -- "$TEMP"  # Note the quotes around '$TEMP': they are essential!
+
+# Overide the defaults with anything from the command line
+while true; do
+    case "$1" in
+        "--debug"         )  set -x;;
+        "?"|"-h"|"--help" )  usage; exit 0 ;;
+        "--version"       )  echo 0.0.0-1; exit 0 ;;
+        "--verbose"       )  verbose=1 ;;
+        "-p"|"--pretend"  )  pretend=1 ;;
+        "-m"|"--message"  )  shift; message="$1" ;;
+        "--"              )  shift ; break ;;
+        *                 )  echo >&2 "getopt error!" ; exit 1 ;;
+    esac
+    shift
+done
+package="$1"
+
+# Ensure we are on the master branch
+current_branch=$(git branch | grep '*' |cut -f2 -d' ') 
+if [ "master" != "$current_branch" ]; then
+    echo >&2 "Cannot automatically create a version number unless it is on the master branch."
+    echo >&2 "You should manually assign a tag by incrementing the release number on the version you branched."
+    echo >&2 "Current branch : " $current_branch 
+    exit 1
 fi
 
-if [ "$1" = "--version" ]; then
-    echo 0.0.0-1
-    exit
+# Make sure the tags are up to date with the central repo
+git fetch --tags
+
+# From here there are a few scenarios.
+# 1) An exact tag is found. 
+#   1a) The HEAD has been tagged already for this package.  If so, no need to do anything
+#   1b) The HEAD has already been tagged but for another package.  If so, need to reuse that version number and tag again.
+# 2) No exact tag is found.  Need to determine the previous greatest version number and tag HEAD with an incremented version number. 
+exact_tag=$(git describe --tags --exact 2>/dev/null)
+
+# Set up some variables and do the actual git stuff later
+if [ $? = 0 ]; then
+    # Case 1
+    verbose_echo "Found an exact tag = $exact_tag"
+    variables=$(echo $exact_tag | sed 's%\(.*\)-\([0-9].*\)\.\([0-9].*\)\.\([0-9].*\)-\([0-9]\)%exact_tag_package=\1;major=\2;minor=\3;revision=\4;release=\5%' | tr '\n' ' ')
+    eval $variables
+else
+    # Case 2
+    variables=$(/data2/home/geoff/pkgit/scripts/pkgit-greatest-version | sed 's%\([0-9].*\)\.\([0-9].*\)\.\([0-9].*\)-\([0-9]\)%major=\1;minor=\2;revision=\3;release=\4%')    
+    eval $variables    
+    revision=$(($revision + 1))
 fi
+
+if [ "$package" = "$exact_tag_package" ]; then
+    # Case 1a
+    verbose_echo "Nothing more to do as the tag is correct"
+else
+    # This will complete Case 1b and case 2
+    new_tag=$package-$major.$minor.$revision-$release
+    verbose_echo "Tagging with tag = $new_tag and message = $message"
+    if [ -z "$pretend" ]; then
+        git tag -a "$new_tag" -m "$message"
+        git push "$new_tag"
+    fi
+fi
+
+
+
+
 
 
