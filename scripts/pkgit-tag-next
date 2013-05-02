@@ -1,4 +1,4 @@
-#!/usr/bin/env sh
+#!/usr/bin/env bash
 
 # pkgit-tag-next 
 # Insert a tag into the git repo at HEAD which has the next possible version number for the current project
@@ -8,8 +8,35 @@
 
 usage()
 {
-    echo "Usage: $(basename $0) [-h|-?|--help] [--debug] [--version] [-v|--verbose] [-p|--pretend] [-m|--message=<meaningful message>] <package_name>"
-    echo "Tags the next version by looking at the last tagged version, and adds one to the last dotted element. Obviously only works if version numbers are reasonably standard."
+cat <<EOF
+Usage: $(basename $0) [-h|--help] [--debug] [--version] [-v|--verbose] [-p|--pretend] [-m|--message=<meaningful message>] <package_name>
+
+Create an annotated tag in the git repository with the next version by \
+looking at the last tagged version, and adding one to the last dotted element. \
+Obviously only works if version numbers are reasonably standard. \
+If the current head already has a tag for another project, then the new tag will \
+reuse the other projects version number rather than bumping the version number.
+
+For example, if you are trying to create a tag for pkg-two and the last git tag was \
+pkg-one-2.3.6-1 and HEAD has moved on from that tag, then the new tag will be \
+pkg-two-2.3.7-1. But, if you are trying to create a tag for pkg-two and the last \
+git tag was pkg-one-2.3.6-1 which is currently the same as HEAD, then the new tag \
+will be pkg-two-2.3.6-1
+
+Options:
+  -h|--help  Print this message
+  --debug  Executes "set -x" to put the shell into debug mode
+  --version  Print the version number and exit
+  -v|--verbose  Print out extra information rather than showing nothing
+  -p|--pretend  Do all the work but doens't actually execute the git tag command
+  -m|--message  The message to be put into the annotated tag.  Defaults to "Tagging in preparation for packaging"
+  
+Examples:
+pkgit-tag-next -m "The Heisenbug is gone" my-package-name
+        
+EOF
+   
+exit 0
 }
 
 verbose_echo()
@@ -26,11 +53,12 @@ TEMP=$(getopt -s sh -o hvpm: -l "help,debug,version,verbose,pretend,message:" -n
 if [ $? != 0 ] ; then echo "Could not parse command line options..." >&2 ; usage ; fi
 eval set -- "$TEMP"  # Note the quotes around '$TEMP': they are essential!
 
+message="Tagging in preparation for packaging"
 # Overide the defaults with anything from the command line
 while true; do
     case "$1" in
         "--debug"         )  set -x;;
-        "?"|"-h"|"--help" )  usage; exit 0 ;;
+        "-h"|"--help" )  usage ;;
         "--version"       )  echo 0.0.0-1; exit 0 ;;
         "--verbose"       )  verbose=1 ;;
         "-p"|"--pretend"  )  pretend=1 ;;
