@@ -1,4 +1,4 @@
-#!/bin/dash
+#!/usr/bin/env sh
 
 # Write a skeleton spec file 
 

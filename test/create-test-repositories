@@ -1,4 +1,4 @@
-#!/bin/dash
+#!/usr/bin/env sh
 
 # We need three repositories to test with
 # Two repositories act like independent users

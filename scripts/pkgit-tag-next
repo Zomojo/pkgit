@@ -1,4 +1,4 @@
-#!/bin/dash
+#!/usr/bin/env sh
 
 # pkgit-tag-next 
 # Insert a tag into the git repo at HEAD which has the next possible version number for the current project
