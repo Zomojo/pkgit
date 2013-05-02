@@ -9,15 +9,15 @@ usage()
     echo "then the greatest version number is 1.0.2 with a release numer of 1."
 }
 
-if [ "$1" = "--version" ]; then
-    echo 0.0.0-0
-    exit
-fi
-    
 if [ "$1" = "--help" ] || [ "$1" = "-h" ] || [ "$1" = "-?" ]; then
     usage
     exit
-fi    
+fi
+
+if [ "$1" = "--version" ]; then
+    echo 0.0.0-1
+    exit
+fi
 
 #
 # All the magic happens here.  

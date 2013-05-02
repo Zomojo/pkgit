@@ -14,11 +14,11 @@ if [ $(git clean -d -n | wc -l) != 0 ]; then
     exit 1
 fi
 
-for path in scripts/pkgit-*; do
+for path in $(ls scripts/pkgit-*|grep -v ~); do
     script=$(basename $path)
     echo Creating documentation for $script
     if [ -e $script.help2man.include ]; then
-        extra_includes="--include=$scirpt.help2man.include"
+        extra_includes="--include=$script.help2man.include"
     else
         extra_includs=""
     fi
