@@ -1,0 +1,16 @@
+#!/usr/bin/env sh
+
+top_working_dir=$(mktemp -d)
+remote_repo=$top_working_dir/test-git-repo-remote
+local_repo_1=$top_working_dir/test-git-repo-local-1
+local_repo_2=$top_working_dir/test-git-repo-local-2
+
+ORIGPATH="$PATH"
+PATH="$(readlink -f $(dirname $0)):$(readlink -f $(dirname $0))/../scripts:$PATH"
+
+create-initial-test-repositories $top_working_dir $remote_repo $local_repo_1 $local_repo_2 >/dev/null 2>&1
+test-pkgit-greatest-version $top_working_dir $remote_repo $local_repo_1 $local_repo_2 1.0.0-1
+
+# Cleanup
+rm -rf $top_working_dir >/dev/null 2>&1
+PATH="$ORIGPATH"

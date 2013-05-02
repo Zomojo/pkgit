@@ -7,6 +7,11 @@
 # We can then check for nasty race conditions of people checking in
 # between the other users git pull and git push.
 
+top_working_dir=$1
+remote_repo=$2
+local_repo_1=$3
+local_repo_2=$4
+
 
 # Write a simple hello world program to a file. 
 # $1 is the filename
@@ -26,28 +31,24 @@ EOF
 
 current_working_directory=$(pwd)
 
-top_working_dir=$(mktemp -d)
-remote_repo=$top_working_dir/test-git-repo-remote
-local_repo_1=$top_working_dir/test-git-repo-local-1
-local_repo_2=$top_working_dir/test-git-repo-local-2
 
 cd $top_working_dir
 
 # Make the "central" repo
 mkdir -p $remote_repo
-cd $remote_repo
-git --bare init --shared 
-# 2&>1 /dev/null
+cd $remote_repo  
+git --bare init --shared
+
 
 # clone the central repo to a local repo and add some files
 cd $top_working_dir
-git clone $remote_repo $local_repo_1
+git clone $remote_repo $local_repo_1 
 cd $local_repo_1
 
 mkdir projects
-cd projects
+cd projects 
 mkdir one
-cd one
+cd one 
 create_helloworld english.c "hello world"
 
 cat >build.sh <<EOF
@@ -55,33 +56,31 @@ gcc english.c -o hw-eng
 EOF
 chmod +x build.sh
 
-cd $local_repo_1
+cd $local_repo_1 
 git add .
-git commit -a -m "Initial commit"
-git push origin master 
+git commit -a -m "Initial commit" 
+git push origin master   
 git tag -a manual-1.0.0-1 -m "Initial manual tag"
-git push origin manual-1.0.0-1
+git push origin manual-1.0.0-1  
 
 # Clone the second local repo and add some files
-cd $top_working_dir
-git clone $remote_repo $local_repo_2
+cd $top_working_dir  
+git clone $remote_repo $local_repo_2  
 
-cd $local_repo_2
-cd projects
+cd $local_repo_2  
+cd projects   
 mkdir two
-cd two
+cd two  
 create_helloworld spanish.c "hola mundo"
 
 
-cd $local_repo_2
+cd $local_repo_2  
 git add .
-git commit -a -m "Initial commit of project 2"
-git push
+git commit -a -m "Initial commit of project 2"  
+git push  
 #pkgit-tag-next --message="Spanish hello world" two
 
-cd $current_working_directory >/dev/null
-
-#rm -rf $top_working_dir 2&>1 /dev/null
+cd $current_working_directory 
 
 
 
