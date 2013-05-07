@@ -25,7 +25,10 @@ git fetch --tags >/dev/null 2>&1
 git pull >/dev/null 2>&1
 test-pkgit-tag-next $top_working_dir $remote_repo $local_repo_1 $local_repo_2 one-1.0.1-1
 
+test-pkgit-clean-precondition $top_working_dir $remote_repo $local_repo_1 $local_repo_2 
+
+
 
 # Cleanup
-rm -rf $top_working_dir >/dev/null 2>&1
+#rm -rf $top_working_dir >/dev/null 2>&1
 PATH="$ORIGPATH"

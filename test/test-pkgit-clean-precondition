@@ -1,0 +1,60 @@
+#!/usr/bin/env sh
+
+top_working_dir=$1
+remote_repo=$2
+local_repo_1=$3
+local_repo_2=$4
+
+expected_failure_or_die()
+{
+    if [ $? != 1 ];then
+        echo >&2 "$1 so pkgit should have failed with exit code 1. Somehow this expected failure did not occur."
+        exit 1
+    fi
+}
+
+# Test that pkgit fails without a spec file
+cd $local_repo_1 >/dev/null
+pkgit 2>/dev/null
+expected_failure_or_die "Test hasn't created a spec file yet"
+
+# Test that pkgit fails when not in a git directory
+cd $top_working_dir >/dev/null
+touch only.exists.to.stop.the.fail.on.no.spec.test.spec
+pkgit >/dev/null 2>&1
+expected_failure_or_die "$top_working_dir is not a git repo"
+
+# Test failure when not on branch master
+cd $local_repo_1 >/dev/null
+git checkout -b create-a-failure >/dev/null 2>&1 
+pkgit 2>/dev/null
+expected_failure_or_die "Not allowed to package when not on branch master"
+git checkout master >/dev/null  2>&1
+git branch -d create-a-failure >/dev/null
+
+# Test refusal to package if there are untracked files
+cd $local_repo_1/projects/one  >/dev/null 
+touch a.new.file.which.should.stop.packaging
+pkgit 2>/dev/null
+expected_failure_or_die "Not allowed to package when there are untracked files"
+rm a.new.file.which.should.stop.packaging
+
+# Test refusal to package when there are unstaged changes in the working tree
+sed -i '1s%^%#!/bin/bash\n%' build.sh   # edit the build script in project one
+pkgit 2>/dev/null
+expected_failure_or_die "Not allowed to package when there are changed files"
+
+# Test refusal to package when there are uncommitted changes in the staging area
+git add build.sh
+pkgit 2>/dev/null
+expected_failure_or_die "Not allowed to package when there are uncommitted changes in the staging area"
+git commit -m "project one: Add the correct interpreter to the build script" >/dev/null
+
+# Test refusal to package if the local git repo is ahead of the central repo
+pkgit 2>/dev/null
+expected_failure_or_die "Not allowed to package when the local repo is ahead of the central repo"
+git push  >/dev/null 2>&1
+
+# Cleanup
+cd $top_working_dir >/dev/null
+rm only.exists.to.stop.the.fail.on.no.spec.test.spec
