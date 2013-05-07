@@ -34,12 +34,12 @@ Version: %{version_base}
 Release: %{version_release}%{?org_tag}%{?dist}
 Source: %{name}-%{version}.tgz
 License: Proprietary, Redistribution not allowed
-Group: System/Libraries
+Group: Applications/Other
 Buildroot: %_tmppath/%{name}-%{version}
 BuildArch: %{arch}
 
 %description
-two - a package that exists to test out building packages.  Remove it ASAP. :)
+$project_name - What does this project actually do?
 
 
 %prep

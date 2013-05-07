@@ -8,8 +8,23 @@ local_repo_2=$top_working_dir/test-git-repo-local-2
 ORIGPATH="$PATH"
 PATH="$(readlink -f $(dirname $0)):$(readlink -f $(dirname $0))/../scripts:$PATH"
 
+trap rm -rf $top_working_dir >/dev/null 2>&1 INT TERM PIPE CHLD ABRT 
+
 create-initial-test-repositories $top_working_dir $remote_repo $local_repo_1 $local_repo_2 >/dev/null 2>&1
-test-pkgit-greatest-version $top_working_dir $remote_repo $local_repo_1 $local_repo_2 1.0.0-1
+
+# Test that pkgit-find-repo-root works
+test-pkgit-find-repo-root $top_working_dir $remote_repo $local_repo_1 $local_repo_2 
+
+# Test that pkgit-tag-next can ignore tags like "pre-delete-obsolete-project-2" or "might-need-to-rollback-here-oneday"
+cd $local_repo_2
+git tag -a -m "First time project two appears" first-time-project-2-appears >/dev/null 2>&1 
+git push --tags >/dev/null 2>&1 
+
+cd $local_repo_1
+git fetch --tags >/dev/null 2>&1 
+git pull >/dev/null 2>&1
+test-pkgit-tag-next $top_working_dir $remote_repo $local_repo_1 $local_repo_2 one-1.0.1-1
+
 
 # Cleanup
 rm -rf $top_working_dir >/dev/null 2>&1

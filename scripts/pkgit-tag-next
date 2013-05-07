@@ -1,10 +1,9 @@
-#!/usr/bin/env bash
+#!/usr/bin/env sh
 
 # pkgit-tag-next 
-# Insert a tag into the git repo at HEAD which has the next possible version number for the current project
-# For example, if you are in a directory which contains a spec file called myproject.spec
-# then look at all tags in the current git repo and search for all version numbers.
-# Determine the greatest version number, e.g., 1.0.5-4.  Then insert a tag 
+# Insert a tag into the git repo at HEAD which has the next possible version number for the given project
+# Looks at all tags in the current git repo and searches for all version numbers.
+# Determine the greatest version number, e.g., 1.0.5-4.  Then either reuses that version or increments it, then insert a tag 
 
 usage()
 {
@@ -28,11 +27,11 @@ Options:
   --debug  Executes "set -x" to put the shell into debug mode
   --version  Print the version number and exit
   -v|--verbose  Print out extra information rather than showing nothing
-  -p|--pretend  Do all the work but doens't actually execute the git tag command
+  -p|--pretend  Do all the work but don't actually execute the git tag command. Works best in conjunction with --verbose
   -m|--message  The message to be put into the annotated tag.  Defaults to "Tagging in preparation for packaging"
   
 Examples:
-pkgit-tag-next -m "The Heisenbug is gone" my-package-name
+$(basename $0) -m "The Heisenbug is gone" my-package-name
         
 EOF
    
@@ -49,7 +48,7 @@ verbose_echo()
 # Parse command line arguments. We accept the usual GNU short and long args and convert them to space separated arguments
 # Note that we use `"$@"' to let each command-line parameter expand to a separate word. The quotes around `$@' are essential!
 # We need TEMP as the `eval set --' would nuke the return value of getopt.
-TEMP=$(getopt -s sh -o hvpm: -l "help,debug,version,verbose,pretend,message:" -n "pkgit-tag-next" -- "$@")
+TEMP=$(getopt -s sh -o hvpm: -l "help,debug,version,verbose,pretend,print,message:" -n "$(basename $0)" -- "$@")
 if [ $? != 0 ] ; then echo "Could not parse command line options..." >&2 ; usage ; fi
 eval set -- "$TEMP"  # Note the quotes around '$TEMP': they are essential!
 
@@ -57,17 +56,24 @@ message="Tagging in preparation for packaging"
 # Overide the defaults with anything from the command line
 while true; do
     case "$1" in
-        "--debug"         )  set -x;;
-        "-h"|"--help" )  usage ;;
+        "--debug"         )  set -x ;;
+        "-h"|"--help"     )  usage ;;
         "--version"       )  echo 0.0.0-1; exit 0 ;;
-        "--verbose"       )  verbose=1 ;;
-        "-p"|"--pretend"  )  pretend=1 ;;
+        "--verbose"       )  verbose="--verbose" ;;
+        "-p"|"--pretend"  )  pretend="--pretend" ;;
+        "--print"         )  print="--print" ;;
         "-m"|"--message"  )  shift; message="$1" ;;
-        "--"              )  shift ; break ;;
+        "--"              )  shift; break ;;
         *                 )  echo >&2 "getopt error!" ; exit 1 ;;
     esac
     shift
 done
+
+if [ -z $1 ]; then
+    echo >&2 No package specified.  You must specify a package to tag.
+    exit 1
+fi
+
 package="$1"
 
 # Ensure we are on the master branch
@@ -87,7 +93,7 @@ git fetch --tags
 #   1a) The HEAD has been tagged already for this package.  If so, no need to do anything
 #   1b) The HEAD has already been tagged but for another package.  If so, need to reuse that version number and tag again.
 # 2) No exact tag is found.  Need to determine the previous greatest version number and tag HEAD with an incremented version number. 
-exact_tag=$(git describe --tags --exact 2>/dev/null)
+exact_tag=$(git describe --tags --match='*-*.*.*-*' --exact 2>/dev/null)
 
 # Set up some variables and do the actual git stuff later
 if [ $? = 0 ]; then
@@ -97,7 +103,8 @@ if [ $? = 0 ]; then
     eval $variables
 else
     # Case 2
-    variables=$(/data2/home/geoff/pkgit/scripts/pkgit-greatest-version | sed 's%\([0-9].*\)\.\([0-9].*\)\.\([0-9].*\)-\([0-9]\)%major=\1;minor=\2;revision=\3;release=\4%')    
+    greatest_version=$(git describe $(git rev-list --tags='*-*.*.*-*' --max-count=1) | rev | cut -d- -f-2 |rev)
+    variables=$(echo $greatest_version | sed 's%\([0-9].*\)\.\([0-9].*\)\.\([0-9].*\)-\([0-9]\)%major=\1;minor=\2;revision=\3;release=\4%')    
     eval $variables    
     revision=$(($revision + 1))
 fi
@@ -105,15 +112,19 @@ fi
 if [ "$package" = "$exact_tag_package" ]; then
     # Case 1a
     verbose_echo "Nothing more to do as the tag is correct"
+    final_tag=$exact_tag
 else
     # This will complete Case 1b and case 2
-    new_tag=$package-$major.$minor.$revision-$release
-    verbose_echo "Tagging with tag = $new_tag and message = $message"
+    final_tag=$package-$major.$minor.$revision-$release
+    verbose_echo "Tagging with tag = $final_tag and message = $message"
     if [ -z "$pretend" ]; then
-        git tag -a "$new_tag" -m "$message"
-        git push "$new_tag"
+        git tag -a "$final_tag" -m "$message"
+        git push origin "$final_tag" >/dev/null 2>&1
     fi
 fi
+
+echo $final_tag
+
 
 
 

@@ -1,0 +1,54 @@
+#!/usr/bin/env sh
+
+#
+# Try to find the .git directory starting from the current directory and working upwards
+# Continue working upwards until either the .git directory is found or the "/" directory is found
+# Echo out the directory when it is found.  
+# Exit code non-zero on error
+#
+
+# Set exit code to failure.  Let a success override this.
+exit_code=1
+
+#
+# Ensure that the $1 of this function is not the root directory of the file system
+# If it is then exit the script with an error code
+#
+ensure_not_root_directory()
+{
+    current_dir=$(pwd)
+    cd $1 2>&1 /dev/null
+    if [ $? != 0 ] || [ $(pwd) = / ]; then
+        cd $current_dir 2>&1 /dev/null
+        exit 1   # Note the early exit from this script if we have hit the root directory of the file system
+    fi
+    cd $current_dir &> /dev/null
+}
+
+#
+# Turn a directory like /home/geoff/../matthew into /home/matthew
+#
+fold_dots_in_path()
+{
+    current_dir=$(pwd)
+    cd $1 2>&1 /dev/null
+    pwd
+    cd $current_dir 2>&1 /dev/null
+}
+
+test_dir=$(pwd)
+ensure_not_root_directory $test_dir
+test -e $test_dir/.git
+exit_code=$?
+
+while [ $exit_code != 0 ]
+do
+    test_dir=$test_dir/..
+    ensure_not_root_directory $test_dir
+    test -e $test_dir/.git
+    exit_code=$?
+done
+
+
+fold_dots_in_path $test_dir
+exit $exit_code

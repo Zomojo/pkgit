@@ -1,0 +1,14 @@
+#!/usr/bin/env sh
+
+top_working_dir=$1
+remote_repo=$2
+local_repo_1=$3
+local_repo_2=$4
+expected_tag=$5
+
+cd $local_repo_1
+tag=$(pkgit-tag-next -m "Time to release!" one)
+if [ "$tag" != "$expected_tag" ]; then
+        echo >&2 "Failed test pkgit-tag-next. Expected version $expected_tag, got $tag"
+        exit 1
+fi    
