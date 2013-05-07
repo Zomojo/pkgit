@@ -29,6 +29,7 @@ Options:
   -v|--verbose  Print out extra information rather than showing nothing
   -p|--pretend  Do all the work but don't actually execute the git tag command. Works best in conjunction with --verbose
   -m|--message  The message to be put into the annotated tag.  Defaults to "Tagging in preparation for packaging"
+  -q|--quiet    Surpress the echo of the tag. That is, just do all the git work and do it quietly.
   
 Examples:
 $(basename $0) -m "The Heisenbug is gone" my-package-name
@@ -48,7 +49,7 @@ verbose_echo()
 # Parse command line arguments. We accept the usual GNU short and long args and convert them to space separated arguments
 # Note that we use `"$@"' to let each command-line parameter expand to a separate word. The quotes around `$@' are essential!
 # We need TEMP as the `eval set --' would nuke the return value of getopt.
-TEMP=$(getopt -s sh -o hvpm: -l "help,debug,version,verbose,pretend,print,message:" -n "$(basename $0)" -- "$@")
+TEMP=$(getopt -s sh -o hvpqm: -l "help,debug,version,verbose,pretend,quiet,message:" -n "$(basename $0)" -- "$@")
 if [ $? != 0 ] ; then echo "Could not parse command line options..." >&2 ; usage ; fi
 eval set -- "$TEMP"  # Note the quotes around '$TEMP': they are essential!
 
@@ -61,7 +62,7 @@ while true; do
         "--version"       )  echo 0.0.0-1; exit 0 ;;
         "--verbose"       )  verbose="--verbose" ;;
         "-p"|"--pretend"  )  pretend="--pretend" ;;
-        "--print"         )  print="--print" ;;
+        "-q"|"--quiet"    )  quiet="--quiet" ;;
         "-m"|"--message"  )  shift; message="$1" ;;
         "--"              )  shift; break ;;
         *                 )  echo >&2 "getopt error!" ; exit 1 ;;
@@ -69,7 +70,7 @@ while true; do
     shift
 done
 
-if [ -z $1 ]; then
+if [ -z "$1" ]; then
     echo >&2 No package specified.  You must specify a package to tag.
     exit 1
 fi
@@ -86,7 +87,7 @@ if [ "master" != "$current_branch" ]; then
 fi
 
 # Make sure the tags are up to date with the central repo
-git fetch --tags
+git fetch --tags  2>&1 >/dev/null
 
 # From here there are a few scenarios.
 # 1) An exact tag is found. 
@@ -123,7 +124,9 @@ else
     fi
 fi
 
-echo $final_tag
+if [ -z "$quiet" ]; then
+    echo $final_tag
+fi
 
 
 
