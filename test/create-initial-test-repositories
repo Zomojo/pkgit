@@ -62,6 +62,7 @@ git commit -a -m "Initial commit"
 git push origin master   
 git tag -a manual-1.0.0-1 -m "Initial manual tag"
 git push origin manual-1.0.0-1  
+sleep 1
 
 # Clone the second local repo and add some files
 cd $top_working_dir  
@@ -78,7 +79,7 @@ cd $local_repo_2
 git add .
 git commit -a -m "Initial commit of project 2"  
 git push  
-#pkgit-tag-next --message="Spanish hello world" two
+pkgit-tag-next --message="Spanish hello world" two
 
 cd $current_working_directory 
 

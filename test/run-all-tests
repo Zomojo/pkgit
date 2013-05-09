@@ -1,4 +1,4 @@
-#!/usr/bin/env sh
+#!/usr/bin/env dash
 
 top_working_dir=$(mktemp -d)
 remote_repo=$top_working_dir/test-git-repo-remote
@@ -7,8 +7,15 @@ local_repo_2=$top_working_dir/test-git-repo-local-2
 
 ORIGPATH="$PATH"
 PATH="$(readlink -f $(dirname $0)):$(readlink -f $(dirname $0))/../scripts:$PATH"
+trap "{ rm -rf $top_working_dir >/dev/null 2>&1; exit 2; }" INT TERM ABRT 
 
-trap rm -rf $top_working_dir >/dev/null 2>&1 INT TERM PIPE CHLD ABRT 
+
+die()
+{
+    echo >&2 "$1"
+    exit 1
+}
+
 
 create-initial-test-repositories $top_working_dir $remote_repo $local_repo_1 $local_repo_2 >/dev/null 2>&1
 
@@ -24,10 +31,28 @@ cd $local_repo_1
 git fetch --tags >/dev/null 2>&1 
 git pull >/dev/null 2>&1
 test-pkgit-tag-next $top_working_dir $remote_repo $local_repo_1 $local_repo_2 one-1.0.1-1
-
 test-pkgit-clean-precondition $top_working_dir $remote_repo $local_repo_1 $local_repo_2 
 
+# Create a spec file for project 1
+cd $local_repo_1/projects/one
+pkgit-create-skeleton-spec-file
+git add one.spec
+git commit -m "Add spec file" >/dev/null
+git push  >/dev/null  2>&1
 
+# Test that the greatest version is 1.0.1-1
+greatest_version=$(git tag -l  '*-*.*.*-*' --contains=$(git rev-list --tags='*-*.*.*-*' --max-count=1) | head -1 | rev | cut -d- -f-2 |rev)
+if [ $greatest_version != 1.0.1-1 ]; then
+    die "Greatest version detected is $greatest_version but expected 1.0.1-1"
+fi
+
+# Actually put some build/install stuff into one.spec
+sed -i "s|%install|./build.sh\n\n%install|g" one.spec
+git commit -a -m "Fixes for spec file" >/dev/null
+git push >/dev/null  2>&1
+
+# Build a "one" rpm
+pkgit 
 
 # Cleanup
 #rm -rf $top_working_dir >/dev/null 2>&1

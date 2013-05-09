@@ -1,0 +1,229 @@
+#!/usr/bin/env dash
+
+# Publish a package using the spec file in the current directory
+
+umask 0002
+
+usage()
+{
+cat <<EOF
+Usage: $(basename $0) [-h|--help] [--debug] [--version] [-v|--verbose] [-p|--pretend] [-m|--message=<meaningful message>]
+
+Publish a package using the spec file in the current directory
+
+Options:
+  -h|--help  Print this message
+  --debug  Executes "set -x" to put the shell into debug mode
+  --version  Print the version number and exit
+  -v|--verbose  Print out extra information rather than showing nothing
+  -p|--pretend  Do all the work but don't actually execute the git tag command. Works best in conjunction with --verbose
+  -m|--message  The message to be put into the annotated tag.  Defaults to "Tagging in preparation for packaging"
+  
+Examples:
+$(basename $0) -m "The Heisenbug is gone."
+        
+EOF
+   
+exit 0
+}
+
+die()
+{
+    echo >&2 "$@"
+    exit 1
+}
+
+verbose_echo()
+{
+    if [ -n "$verbose" ]; then
+        echo "$@"
+    fi
+}
+
+# Parse command line arguments. We accept the usual GNU short and long args and convert them to space separated arguments
+# Note that we use `"$@"' to let each command-line parameter expand to a separate word. The quotes around `$@' are essential!
+# We need TEMP as the `eval set --' would nuke the return value of getopt.
+TEMP=$(getopt -s sh -o hvpm: -l "help,debug,version,verbose,pretend,message:" -n "$(basename $0)" -- "$@")
+if [ $? != 0 ] ; then echo "Could not parse command line options..." >&2 ; usage ; fi
+eval set -- "$TEMP"  # Note the quotes around '$TEMP': they are essential!
+
+message="Tagging in preparation for packaging"
+# Overide the defaults with anything from the command line
+while true; do
+    case "$1" in
+        "--debug"         )  set -x;debug="--debug" ;;
+        "-h"|"--help"     )  usage ;;
+        "--version"       )  echo 0.0.0-1; exit 0 ;;
+        "--verbose"       )  verbose="--verbose" ;;
+        "-p"|"--pretend"  )  pretend="--pretend" ;;
+        "-m"|"--message"  )  shift; message="$1" ;;
+        "--"              )  shift ; break ;;
+        *                 )  echo >&2 "getopt error!" ; exit 1 ;;
+    esac
+    shift
+done
+
+# Check that one and only one spec file exists
+spec=$(ls -1 *.spec 2> /dev/null)
+if [ "$spec" = "" ]; then
+    die "$(basename $0) will only work if there is exactly one spec file in the current directory.  An example spec file can be created with pkgit-create-skeleton-spec-file."
+fi
+verbose_echo "Found spec file = $spec"
+
+# Check we are in a git repo
+git status 2>&1 >/dev/null
+if [ $? != 0 ]; then
+    die "Cannot run this script outside of a git repository"
+fi
+
+# Refuse to package if we aren't on branch master.  May remove this limitation in the future
+current_branch=$(git branch |grep '*'|cut -d' ' -f2)
+if [ $current_branch != "master" ]; then
+    die "Refusing to publish: not on branch master.  Try 'git checkout master' before using pkgit again"
+fi
+
+# Refuse to package if there are untracked files (if .gitignore knows about them then it is OK to proceed)
+if [ $(git clean -d -n | wc -l) != 0 ]; then
+    echo >&2 "Refusing to publish: the following files are currently untracked by git: "
+    git clean -d -n |sed 's/Would remove /\t/g'
+    die "Please commit them, stash them, add them to a .gitignore or remove them."
+fi
+
+# Disallow unstaged changes in the working tree
+git diff --name-status --ignore-submodules --exit-code 2>&1 >/dev/null
+if [ $? != 0 ] ; then
+    echo >&2 "Refusing to publish: you have unstaged changes."
+    git diff --name-status --ignore-submodules >&2
+    die "Please commit them, stash them or remove them."
+fi
+
+# Disallow uncommitted changes in the staging area
+git diff --staged --quiet --ignore-submodules --exit-code 2>&1 >/dev/null
+if [ $? != 0 ]; then
+    echo >&2 "Refusing to publish: your staging area contains uncommitted changes."
+    git diff --staged --name-status --ignore-submodules >&2
+    die "Please commit them or remove them from the staging area."
+fi
+
+# Refuse to package if the local git repo is ahead of the central repo
+# Note that the other way around is OK.  That is, the central repo may be in advance of the local repo.
+count_ahead=$(git log origin/$current_branch..HEAD --format=oneline |wc -l)
+if [ $count_ahead -gt 0 ]; then
+    die "Refusing to publish: Your branch is ahead of 'origin/master' by $count_ahead commit(s). Please push these commits to the central repo before attempting to package." 
+fi
+
+
+# Repo is now verified to be clean.  Time to tag it.
+tag_cmd="$(dirname $0)/pkgit-tag-next $debug --message=\"$message\" $pretend $verbose ${spec%.spec} |tail -1"
+verbose_echo "Calling $tag_cmd"
+tag_name=$(eval $tag_cmd)
+if [ $? != 0 ]; then
+    die "Tagging unsuccessful.  Can't proceed. :("
+fi
+
+release=${tag_name##*-}                # Release is everything after the last minus sign.  Mostly this will be 1
+version=${tag_name#${spec%.spec}-*}    # Remove the spec (package) name from the start; leaving something like 3.0.8-1
+version=${version%-*}                  # Remove the release number from the end; leaving something like 3.0.8
+
+# Release should be a number
+TESTVAR="$(echo "$release" | sed 's/[0-9]*//g' )"
+[ "${TESTVAR}"x = ""x ] || die "Illegal release number: $release"
+
+# Version should be number.number.number
+TESTVAR="$(echo "$version" | sed 's/[0-9]*//g' )"
+[ "${TESTVAR}"x = ".."x ] || die "Illegal version number: $version"
+
+verbose_echo "Tag name:           $tag_name"
+verbose_echo "Spec file:          $spec"
+verbose_echo "Version:            $version"
+verbose_echo "Release:            $release"
+verbose_echo ""
+
+count=$(git clean -x -n -d |wc -l)
+if [ $count -gt 0 ]; then
+    echo ^^^^^^ WARNING ^^^^^^
+    echo If you proceed you
+    git clean -x -n -d
+    echo
+    echo "Proceed (y/N)"
+    read user_choice
+    if [ $user_choice = "Y" ] || [ $user_choice = "y" ]; then
+        echo "Cleaning out any uncommitted files..."
+        git reset --hard
+        git clean -x  -f -d
+    else
+        exit 1
+    fi
+fi
+
+
+# If anything goes wrong after here we need to revert the changes we locally make to the spec file
+trap "{ git checkout $spec; exit 2; }"  INT TERM ABRT 
+
+verbose_echo "Inserting correct version numbers and package source into spec file"
+sed -i "s/%{version_base}/$version/" $spec
+sed -i "s/%{version_release}/$release/" $spec
+
+current_repo_root=$($(dirname $0)/pkgit-find-repo-root)
+current_specfile_path=$(pwd)
+# Note that the character after the 's' in the sed command is defined by sed to be the command separator character. i.e., you don't have to use '/'
+relative_project_path=$(echo $current_specfile_path | sed s^$current_repo_root^^g)   
+repopath=$(git remote show origin |head -n 2 |tail -n1|sed 's/Fetch URL:/git clone/g')
+spec_repopath="$repopath yourreponame && cd yourreponame${relative_project_path} && git checkout $tag_name"
+verbose_echo "$spec_repopath"
+sed -i "s|%description|%description\nPackage Source: $spec_repopath\n|g" $spec
+
+# Now make the package
+
+# At this point in time we will only support the source gzipped tarball with the .tgz extension
+grep Source: $spec |grep tgz >/dev/null
+if [ $? = 1 ]; then
+    die "At this point in time we will only support the source gzipped tarball with the .tgz extension"
+fi
+
+#top_level_build_dir=$(mktemp -d)
+top_level_build_dir="$HOME"
+
+# Do not build in the root dir of the filesystem 
+if [ $top_level_build_dir = "/" ]; then
+    die "Refusing to build with when the top level build directory is /"
+fi
+
+verbose_echo "Building in $top_level_build_dir"
+rpmhome=$top_level_build_dir/rpmbuild
+mkdir -p $rpmhome
+cd $rpmhome
+rpmdev-setuptree
+
+
+# rpmbuild expects to find the files in a tarball with the package-version as the top level directory.
+# We build up the expected tarball by going through a temporary symlink.
+mkdir -p $rpmhome/tmp
+cd $rpmhome/tmp
+ln -s $current_specfile_path $rpmhome/tmp/${tag_name%-*}
+find -L . -type f 2>/dev/null | perl -n -e 'print unless m!(/\.git/|.gitignore)!'  > $rpmhome/${spec}_files_to_tar.txt
+
+tar -cvzf $rpmhome/SOURCES/${tag_name%-*}.tgz --files-from $rpmhome/${spec}_files_to_tar.txt >/dev/null  2>&1
+
+cd $rpmhome
+rm ${spec}_files_to_tar.txt
+rm -rf $rpmhome/tmp
+
+cp $current_specfile_path/$spec $rpmhome/SPECS
+
+# build RPM
+cd $rpmhome/SPECS  >/dev/null || exit 1
+rpmbuild -ba $(basename $spec) || exit 1
+cd $rpmhome
+find -name "*.rpm" -exec mv {} $current_specfile_path \;
+
+# reset the spec file
+cd $current_specfile_path
+git checkout $spec
+rm -rf $rpmhome/*
+
+
+
+
+
+

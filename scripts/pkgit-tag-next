@@ -3,7 +3,10 @@
 # pkgit-tag-next 
 # Insert a tag into the git repo at HEAD which has the next possible version number for the given project
 # Looks at all tags in the current git repo and searches for all version numbers.
-# Determine the greatest version number, e.g., 1.0.5-4.  Then either reuses that version or increments it, then insert a tag 
+# Versions must be of the form major.minor.revision-release
+# Determine the greatest version number, e.g., 1.0.5-4.  Then either reuses that version or increments the revision, then insert a tag
+# TODO: Add a flag to increment the minor or major.
+
 
 usage()
 {
@@ -57,7 +60,7 @@ message="Tagging in preparation for packaging"
 # Overide the defaults with anything from the command line
 while true; do
     case "$1" in
-        "--debug"         )  set -x ;;
+        "--debug"         )  set -x;debug="--debug" ;;
         "-h"|"--help"     )  usage ;;
         "--version"       )  echo 0.0.0-1; exit 0 ;;
         "--verbose"       )  verbose="--verbose" ;;
@@ -104,7 +107,10 @@ if [ $? = 0 ]; then
     eval $variables
 else
     # Case 2
-    greatest_version=$(git describe $(git rev-list --tags='*-*.*.*-*' --max-count=1) | rev | cut -d- -f-2 |rev)
+    # Need to be a little careful when a tag of the form blah-blah-blah also points to the same sha1 as mypkg-2.5.4-1
+    # git rev-list will find the lastest sha1 with a tag of the form mypkg-2.5.4-1, the use git tag to convert the sha1 to a tag, then slice and dice the tag to get the version-release
+    # Can't use git describe rather than git tag as describe will happily hand back the blah-blah-blah tag.
+    greatest_version=$(git tag -l  '*-*.*.*-*' --contains=$(git rev-list --tags='*-*.*.*-*' --max-count=1) | head -1 | rev | cut -d- -f-2 |rev)
     variables=$(echo $greatest_version | sed 's%\([0-9].*\)\.\([0-9].*\)\.\([0-9].*\)-\([0-9]\)%major=\1;minor=\2;revision=\3;release=\4%')    
     eval $variables    
     revision=$(($revision + 1))
