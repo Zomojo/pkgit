@@ -1,7 +1,6 @@
 #!/usr/bin/env dash
 
 # Publish a package using the spec file in the current directory
-
 umask 0002
 
 usage()
@@ -58,7 +57,7 @@ while true; do
         "-p"|"--pretend"  )  pretend="--pretend" ;;
         "-m"|"--message"  )  shift; message="$1" ;;
         "--"              )  shift ; break ;;
-        *                 )  echo >&2 "getopt error!" ; exit 1 ;;
+        *                 )  die "getopt error!" ; exit 1 ;;
     esac
     shift
 done
@@ -76,10 +75,13 @@ if [ $? != 0 ]; then
     die "Cannot run this script outside of a git repository"
 fi
 
-# Refuse to package if we aren't on branch master.  May remove this limitation in the future
+# Refuse to package if we aren't on branch master and there isn't an exact tag describing the sha1.  May remove this limitation in the future
 current_branch=$(git branch |grep '*'|cut -d' ' -f2)
 if [ $current_branch != "master" ]; then
-    die "Refusing to publish: not on branch master.  Try 'git checkout master' before using pkgit again"
+    exact_tag=$(git describe --tags --match='*-*.*.*-*' --exact 2>/dev/null)
+    if [ $? != 0 ]; then
+        die "Refusing to publish: not on branch master and no exact tag describing where we are.  Try 'git checkout master' before using pkgit again"
+    fi
 fi
 
 # Refuse to package if there are untracked files (if .gitignore knows about them then it is OK to proceed)
@@ -192,34 +194,35 @@ fi
 verbose_echo "Building in $top_level_build_dir"
 rpmhome=$top_level_build_dir/rpmbuild
 mkdir -p $rpmhome
-cd $rpmhome
+cd $rpmhome  >/dev/null 
 rpmdev-setuptree
 
 
 # rpmbuild expects to find the files in a tarball with the package-version as the top level directory.
 # We build up the expected tarball by going through a temporary symlink.
+verbose_echo "Building tarball"
 mkdir -p $rpmhome/tmp
-cd $rpmhome/tmp
+cd $rpmhome/tmp   >/dev/null 
 ln -s $current_specfile_path $rpmhome/tmp/${tag_name%-*}
-find -L . -type f 2>/dev/null | perl -n -e 'print unless m!(/\.git/|.gitignore)!'  > $rpmhome/${spec}_files_to_tar.txt
-
+find -L . -type f 2>/dev/null | perl -n -e 'print unless m!(/\.git/|.gitignore)!'  > $rpmhome/${spec}_files_to_tar.txt 
 tar -cvzf $rpmhome/SOURCES/${tag_name%-*}.tgz --files-from $rpmhome/${spec}_files_to_tar.txt >/dev/null  2>&1
 
-cd $rpmhome
+cd $rpmhome  >/dev/null 
 rm ${spec}_files_to_tar.txt
 rm -rf $rpmhome/tmp
 
-cp $current_specfile_path/$spec $rpmhome/SPECS
-
 # build RPM
-cd $rpmhome/SPECS  >/dev/null || exit 1
-rpmbuild -ba $(basename $spec) || exit 1
-cd $rpmhome
-find -name "*.rpm" -exec mv {} $current_specfile_path \;
+verbose_echo "Building RPM"
+cp $current_specfile_path/$spec $rpmhome/SPECS
+cd $rpmhome/SPECS  >/dev/null
+rpmbuild --clean --quiet -ba $(basename $spec)
+cd $rpmhome >/dev/null
+find -name "*.rpm" -exec mv {} $current_specfile_path \;  >/dev/null
 
 # reset the spec file
-cd $current_specfile_path
-git checkout $spec
+verbose_echo "Cleaning up"
+cd $current_specfile_path  >/dev/null
+git checkout $spec >/dev/null
 rm -rf $rpmhome/*
 
 

@@ -42,6 +42,12 @@ EOF
 exit 0
 }
 
+die()
+{
+    echo >&2 "$@"
+    exit 1
+}
+
 verbose_echo()
 {
     if [ -n "$verbose" ]; then
@@ -80,13 +86,13 @@ fi
 
 package="$1"
 
-# Ensure we are on the master branch
-current_branch=$(git branch | grep '*' |cut -f2 -d' ') 
-if [ "master" != "$current_branch" ]; then
-    echo >&2 "Cannot automatically create a version number unless it is on the master branch."
-    echo >&2 "You should manually assign a tag by incrementing the release number on the version you branched."
-    echo >&2 "Current branch : " $current_branch 
-    exit 1
+# Ensure we are on the master branch or that there is already an exact tag for the sha1
+current_branch=$(git branch |grep '*'|cut -d' ' -f2)
+if [ $current_branch != "master" ]; then
+    exact_tag=$(git describe --tags --match='*-*.*.*-*' --exact 2>/dev/null)
+    if [ $? != 0 ]; then
+        die "Cannot automatically create a new version number unless repo is on the master branch."      
+    fi
 fi
 
 # Make sure the tags are up to date with the central repo
@@ -110,7 +116,7 @@ else
     # Need to be a little careful when a tag of the form blah-blah-blah also points to the same sha1 as mypkg-2.5.4-1
     # git rev-list will find the lastest sha1 with a tag of the form mypkg-2.5.4-1, the use git tag to convert the sha1 to a tag, then slice and dice the tag to get the version-release
     # Can't use git describe rather than git tag as describe will happily hand back the blah-blah-blah tag.
-    greatest_version=$(git tag -l  '*-*.*.*-*' --contains=$(git rev-list --tags='*-*.*.*-*' --max-count=1) | head -1 | rev | cut -d- -f-2 |rev)
+    greatest_version=$(git tag -l  '*-*.*.*-*' --contains=$(git rev-list --date-order --tags='*-*.*.*-*' --max-count=1) | head -1 | rev | cut -d- -f-2 |rev)
     variables=$(echo $greatest_version | sed 's%\([0-9].*\)\.\([0-9].*\)\.\([0-9].*\)-\([0-9]\)%major=\1;minor=\2;revision=\3;release=\4%')    
     eval $variables    
     revision=$(($revision + 1))

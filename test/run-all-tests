@@ -16,6 +16,21 @@ die()
     exit 1
 }
 
+get_greatest_version()
+{
+    git tag -l  '*-*.*.*-*' --contains=$(git rev-list --date-order --tags='*-*.*.*-*' --max-count=1) | head -1 | rev | cut -d- -f-2 |rev
+}
+
+test_packaging()
+{
+    git push >/dev/null  2>&1
+    git clean -x -d -f >/dev/null
+    pkgit 
+    if [ $(ls *rpm |wc -l) != 3 ]; then
+        die "Failure creating rpms for project $1.  Should have been an rpm, debug rpm and a source rpm created."
+    fi
+
+}
 
 create-initial-test-repositories $top_working_dir $remote_repo $local_repo_1 $local_repo_2 >/dev/null 2>&1
 
@@ -37,22 +52,58 @@ test-pkgit-clean-precondition $top_working_dir $remote_repo $local_repo_1 $local
 cd $local_repo_1/projects/one
 pkgit-create-skeleton-spec-file
 git add one.spec
-git commit -m "Add spec file" >/dev/null
+git commit -m "project one: Add spec file" >/dev/null
 git push  >/dev/null  2>&1
 
 # Test that the greatest version is 1.0.1-1
-greatest_version=$(git tag -l  '*-*.*.*-*' --contains=$(git rev-list --tags='*-*.*.*-*' --max-count=1) | head -1 | rev | cut -d- -f-2 |rev)
-if [ $greatest_version != 1.0.1-1 ]; then
-    die "Greatest version detected is $greatest_version but expected 1.0.1-1"
+if [ $(get_greatest_version) != 1.0.1-1 ]; then
+    die "Greatest version detected is $(get_greatest_version) but expected 1.0.1-1"
 fi
 
-# Actually put some build/install stuff into one.spec
+# Actually put some build/install stuff into one.spec and then build the rpm
 sed -i "s|%install|./build.sh\n\n%install|g" one.spec
-git commit -a -m "Fixes for spec file" >/dev/null
-git push >/dev/null  2>&1
+git commit -a -m "project one: Fixes for spec file" >/dev/null
+test_packaging one
 
-# Build a "one" rpm
-pkgit 
+# Create a spec file for project two and build a "two" rpm
+cd $local_repo_1/projects/two
+pkgit-create-skeleton-spec-file
+sed -i "s|%install|make spanish\n\n%install|g" two.spec
+git add two.spec
+git commit -m "project two: Add spec file" >/dev/null
+test_packaging two
+
+# Make some git history.
+sed -i "s|mundo|mundo. mi español es muy pobre.|g" spanish.c
+git commit -a -m "project two: Now featuring a poor excuse."  >/dev/null
+cd $local_repo_1/projects/one
+sed -i "s|world|wold. My english is better than my spanish.|g" english.c
+git commit -a -m "project one: Honesty in printfs."  >/dev/null
+
+# Test that the greatest version is 1.0.4-1
+cd $local_repo_1/projects/two
+test_packaging two
+if [ $(get_greatest_version) != 1.0.4-1 ]; then
+    die "Greatest version detected is $(get_greatest_version) but expected 1.0.4-1"
+fi
+
+# Test that packaging another project at the same sha1 uses the same version number
+cd $local_repo_1/projects/one
+test_packaging one 
+if [ $(get_greatest_version) != 1.0.4-1 ]; then
+    die "Greatest version detected is $(get_greatest_version) but expected 1.0.4-1"
+fi
+
+# Test re-packaging re-uses the existing tag
+test_packaging one
+if [ $(get_greatest_version) != 1.0.4-1 ]; then
+    die "Greatest version detected is $(get_greatest_version) but expected 1.0.4-1"
+fi
+
+# Now rollback the repo to tag one-1.0.2-1 and try to repackage
+git checkout one-1.0.2-1
+test_packaging one
+
 
 # Cleanup
 #rm -rf $top_working_dir >/dev/null 2>&1
