@@ -16,20 +16,58 @@ die()
     exit 1
 }
 
-get_greatest_version()
+get_greatest_version() 
 {
-    git tag -l  '*-*.*.*-*' --contains=$(git rev-list --date-order --tags='*-*.*.*-*' --max-count=1) | head -1 | rev | cut -d- -f-2 |rev
+    if [ -z "$1" ]; then
+        tag_specification='*-*.*.*-*'
+    else
+        tag_specification='*'-"$1"-'*'
+    fi
+    
+    latest_sha1=$(git rev-list --date-order --tags="$tag_specification" --max-count=1)
+    if [ $? != 0 ]; then
+        die "getting lastest sha1 by date failed"
+    fi
+    
+    git tag -l "$tag_specification" --contains=$latest_sha1 | head -1 | rev | cut -d- -f-2 |rev
+    if [ $? != 0 ]; then
+        die "converting latest sha1 to a tag name failed"
+    fi
 }
 
 test_packaging()
 {
-    git push >/dev/null  2>&1
+    git push >/dev/null 2>&1
     git clean -x -d -f >/dev/null
     pkgit 
     if [ $(ls *rpm |wc -l) != 3 ]; then
         die "Failure creating rpms for project $1.  Should have been an rpm, debug rpm and a source rpm created."
     fi
 
+}
+
+create_branch_from_previous_tag()
+{
+    previous_tag=$1
+    variables=$(echo $previous_tag| sed 's%\(.*\)-\([0-9].*\.[0-9].*\.[0-9].*\)-\([0-9].*\)%package_name=\1;branch_name=\2;release=\3%')
+    eval "$variables"
+    #echo Package name is $package_name and Branch name is $branch_name and release is $release
+    
+    # Have a look to see if the branch has previously been created
+    git branch -a |grep $branch_name >/dev/null
+    
+    if [ $? != 0 ]; then
+        git checkout $previous_tag  >/dev/null 2>&1                # Checkout the code at the given tag
+        git checkout -b $branch_name >/dev/null 2>&1              # Make a local branch using just the version number
+        git push origin $branch_name >/dev/null 2>&1              # Push the branch to the central repository
+    else
+        git checkout $branch_name >/dev/null 2>&1
+    fi
+    
+    greatest_version_on_branch=$(get_greatest_version $branch_name)
+    #echo "greatest_version_on_branch=$greatest_version_on_branch"
+    next_package_name=$package_name-$branch_name-$((release+1))
+    echo $next_package_name
 }
 
 create-initial-test-repositories $top_working_dir $remote_repo $local_repo_1 $local_repo_2 >/dev/null 2>&1
@@ -77,7 +115,7 @@ test_packaging two
 sed -i "s|mundo|mundo. mi español es muy pobre.|g" spanish.c
 git commit -a -m "project two: Now featuring a poor excuse."  >/dev/null
 cd $local_repo_1/projects/one
-sed -i "s|world|wold. My english is better than my spanish.|g" english.c
+sed -i "s|world|wold. My englsh is better than my spansh.|g" english.c
 git commit -a -m "project one: Honesty in printfs."  >/dev/null
 
 # Test that the greatest version is 1.0.4-1
@@ -101,7 +139,38 @@ if [ $(get_greatest_version) != 1.0.4-1 ]; then
 fi
 
 # Now rollback the repo to tag one-1.0.2-1 and try to repackage
-git checkout one-1.0.2-1
+git checkout one-1.0.2-1 >/dev/null 2>&1
+test_packaging one
+
+# Reset back to master 
+git checkout master >/dev/null 2>&1
+
+# Test that we can branch, do some fixes and packaging and not affect packaging when we go back to master
+next_package_name=$(create_branch_from_previous_tag one-1.0.2-1)
+
+cd $local_repo_1/projects/one
+sed -i "s|world|everyone|g" english.c
+git commit -a -m "project one: Change to everyone."  >/dev/null
+git push >/dev/null 2>&1                                                                      # Put the changes onto the central repository
+git tag -a "$next_package_name" -m "Packaging project one with the everyone change"    # Have to manually tag on the branches
+git push origin $next_package_name >/dev/null 2>&1
+test_packaging one
+
+next_package_name=$(create_branch_from_previous_tag $next_package_name)
+sed -i "s|everyone|everyone+dog|g" english.c
+git commit -a -m "project one: Include dogs too."  >/dev/null
+git push >/dev/null 2>&1                                                                      # Put the changes onto the central repository
+git tag -a "$next_package_name" -m "Packaging project one with the everyone change"    # Have to manually tag on the branches
+git push origin $next_package_name >/dev/null 2>&1
+test_packaging one
+
+# Back to master and check
+git checkout master >/dev/null 2>&1
+exit
+sed -i "s|wold|world|g" english.c
+git commit -a -m "project one: Fix spelling of world."  >/dev/null
+sed -i "s|englsh|english|g" english.c
+git commit -a -m "project one: Fix spelling of english."  >/dev/null
 test_packaging one
 
 

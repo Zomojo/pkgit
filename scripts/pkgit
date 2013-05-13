@@ -76,8 +76,8 @@ if [ $? != 0 ]; then
 fi
 
 # Refuse to package if we aren't on branch master and there isn't an exact tag describing the sha1.  May remove this limitation in the future
-current_branch=$(git branch |grep '*'|cut -d' ' -f2)
-if [ $current_branch != "master" ]; then
+current_branch=$(git branch |grep '*'|cut -d' ' -f2-)
+if [ "$current_branch" != "master" ]; then
     exact_tag=$(git describe --tags --match='*-*.*.*-*' --exact 2>/dev/null)
     if [ $? != 0 ]; then
         die "Refusing to publish: not on branch master and no exact tag describing where we are.  Try 'git checkout master' before using pkgit again"
@@ -109,13 +109,15 @@ fi
 
 # Refuse to package if the local git repo is ahead of the central repo
 # Note that the other way around is OK.  That is, the central repo may be in advance of the local repo.
-count_ahead=$(git log origin/$current_branch..HEAD --format=oneline |wc -l)
-if [ $count_ahead -gt 0 ]; then
-    die "Refusing to publish: Your branch is ahead of 'origin/master' by $count_ahead commit(s). Please push these commits to the central repo before attempting to package." 
+# Make the assumption that if branch is not master (so on a detached HEAD or some other branch) then the user actually knows what they are doing
+if [ "$current_branch" = "master" ]; then
+    count_ahead=$(git log origin/master..HEAD --format=oneline |wc -l)
+    if [ $count_ahead -gt 0 ]; then
+        die "Refusing to publish: Your branch is ahead of 'origin/master' by $count_ahead commit(s). Please push these commits to the central repo before attempting to package." 
+    fi
 fi
 
-
-# Repo is now verified to be clean.  Time to tag it.
+# Time to tag the repo.
 tag_cmd="$(dirname $0)/pkgit-tag-next $debug --message=\"$message\" $pretend $verbose ${spec%.spec} |tail -1"
 verbose_echo "Calling $tag_cmd"
 tag_name=$(eval $tag_cmd)
@@ -123,6 +125,7 @@ if [ $? != 0 ]; then
     die "Tagging unsuccessful.  Can't proceed. :("
 fi
 
+# Extract the version, release from the tag_name
 release=${tag_name##*-}                # Release is everything after the last minus sign.  Mostly this will be 1
 version=${tag_name#${spec%.spec}-*}    # Remove the spec (package) name from the start; leaving something like 3.0.8-1
 version=${version%-*}                  # Remove the release number from the end; leaving something like 3.0.8
