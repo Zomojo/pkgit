@@ -2,11 +2,12 @@
 
 usage()
 {
-    echo "Usage: $(basename $0)"
+    echo "Usage: $(basename $0) [-?|-h|--help] [--version] [branch-version-number]"
     echo "Find the greatest version number tagged in the local repository."
     echo "It is a precondition that the repository has tags of the form packagename.version-release"
     echo "For example, if the repository contains tags pj_one.1.0.0-1 and vv.1.0.2-1, "
     echo "then the greatest version number is 1.0.2 with a release numer of 1."
+    echo "If a branch-version-number is specified then tags are restricted to be of the form packagename.$1-release"
 }
 
 if [ "$1" = "--help" ] || [ "$1" = "-h" ] || [ "$1" = "-?" ]; then
@@ -19,8 +20,16 @@ if [ "$1" = "--version" ]; then
     exit
 fi
 
+if [ -z "$1" ]; then
+    tag_specification='*-*.*.*-*'
+else
+    tag_specification='*'-"$1"-'*'
+fi
+
 #
 # All the magic happens here.  
+# Unfortunately we can't just do a git rev-list and use that result because if somebody is packaging on a branch then there are tags 
+# of a more recent date with a lower version number. Hence the following scheme
 #
 # The git tag will pull out a list of tags like:
 # pk1-3.0.728-1
@@ -32,9 +41,11 @@ fi
 # Later an eval will parse this in and create bash variables. E.g., for the ion3 package above,
 # echo $current_revision 
 # would output 1240.
+taglist=$(git tag -l "$tag_specification"  | rev | cut -d- -f-2 |rev | sed 's%\([0-9].*\)\.\([0-9].*\)\.\([0-9].*\)-\([0-9]\)%current_major=\1;current_minor=\2;current_revision=\3;current_release=\4%' | tr '\n' ' ')
 
-
-taglist=$(git tag -l '*-*.*.*-*' | rev | cut -d- -f-2 |rev | sed 's%\([0-9].*\)\.\([0-9].*\)\.\([0-9].*\)-\([0-9]\)%current_major=\1;current_minor=\2;current_revision=\3;current_release=\4%' | tr '\n' ' ')
+# Need to be a little careful when a tag of the form blah-blah-blah also points to the same sha1 as mypkg-2.5.4-1
+# git rev-list will find the lastest sha1 with a tag of the form mypkg-2.5.4-1, the use git tag to convert the sha1 to a tag, then slice and dice the tag to get the version-release
+# Can't use git describe rather than git tag as describe will happily hand back the blah-blah-blah tag.
 
 major=0
 minor=0
@@ -42,17 +53,25 @@ revision=0
 release=0
 
 for tag in $taglist; do
-    # turn the string "current_major=3;current_minor=0;current_revision=1240;current_release=1" into bash variables
+    # the eval will turn the string "current_major=3;current_minor=0;current_revision=1240;current_release=1" into bash variables
     eval $tag  
-    if [ $current_major -ge $major ]; then
+    
+    if [ $current_major -gt $major ]; then
         major=$current_major
-        if [ $current_minor -ge $minor ]; then 
+        minor=$current_minor
+        revision=$current_revision
+        release=$current_release
+    elif [ $current_major -eq $major ]; then
+        if [ $current_minor -gt $minor ]; then 
             minor=$current_minor
-            if [ $current_revision -ge $revision ]; then
+            revision=$current_revision
+            release=$current_release
+        elif [ $current_minor -eq $minor ]; then 
+            if [ $current_revision -gt $revision ]; then
                 revision=$current_revision
-                if [  $current_release -gt $release ]; then
-                    release=$current_release
-                fi
+                release=$current_release
+            elif [  $current_release -gt $release ]; then
+                release=$current_release
             fi
         fi
     fi

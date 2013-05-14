@@ -1,4 +1,4 @@
-#!/usr/bin/env dash
+#!/usr/bin/env sh
 
 # Publish a package using the spec file in the current directory
 umask 0002

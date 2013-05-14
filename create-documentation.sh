@@ -1,4 +1,4 @@
-#!/bin/dash
+#!/bin/sh
 
 # All documentation should either go in the executable file as part of the --help option 
 # or in the help2man.include file.  This script then will parse that information to 

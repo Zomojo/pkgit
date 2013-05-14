@@ -86,38 +86,33 @@ fi
 
 package="$1"
 
+# Make sure the tags are up to date with the central repo
+git fetch --tags  2>&1 >/dev/null
+
 # Ensure we are on the master branch or that there is already an exact tag for the sha1
 current_branch=$(git branch |grep '*'|cut -d' ' -f2)
-if [ $current_branch != "master" ]; then
-    exact_tag=$(git describe --tags --match='*-*.*.*-*' --exact 2>/dev/null)
-    if [ $? != 0 ]; then
+exact_tag=$(git describe --tags --match='*-*.*.*-*' --exact 2>/dev/null)
+if [ $current_branch != "master" ]; then    
+    if [ -z "$exact_tag" ]; then
         die "Cannot automatically create a new version number unless repo is on the master branch."      
     fi
 fi
-
-# Make sure the tags are up to date with the central repo
-git fetch --tags  2>&1 >/dev/null
 
 # From here there are a few scenarios.
 # 1) An exact tag is found. 
 #   1a) The HEAD has been tagged already for this package.  If so, no need to do anything
 #   1b) The HEAD has already been tagged but for another package.  If so, need to reuse that version number and tag again.
 # 2) No exact tag is found.  Need to determine the previous greatest version number and tag HEAD with an incremented version number. 
-exact_tag=$(git describe --tags --match='*-*.*.*-*' --exact 2>/dev/null)
 
 # Set up some variables and do the actual git stuff later
-if [ $? = 0 ]; then
+if [ -n "$exact_tag" ]; then
     # Case 1
-    verbose_echo "Found an exact tag = $exact_tag"
+    verbose_echo "Found an exact tag = \"$exact_tag\""
     variables=$(echo $exact_tag | sed 's%\(.*\)-\([0-9].*\)\.\([0-9].*\)\.\([0-9].*\)-\([0-9]\)%exact_tag_package=\1;major=\2;minor=\3;revision=\4;release=\5%' | tr '\n' ' ')
     eval $variables
 else
     # Case 2
-    # Need to be a little careful when a tag of the form blah-blah-blah also points to the same sha1 as mypkg-2.5.4-1
-    # git rev-list will find the lastest sha1 with a tag of the form mypkg-2.5.4-1, the use git tag to convert the sha1 to a tag, then slice and dice the tag to get the version-release
-    # Can't use git describe rather than git tag as describe will happily hand back the blah-blah-blah tag.
-    greatest_version=$(git tag -l  '*-*.*.*-*' --contains=$(git rev-list --date-order --tags='*-*.*.*-*' --max-count=1) | head -1 | rev | cut -d- -f-2 |rev)
-    variables=$(echo $greatest_version | sed 's%\([0-9].*\)\.\([0-9].*\)\.\([0-9].*\)-\([0-9]\)%major=\1;minor=\2;revision=\3;release=\4%')    
+    variables=$(pkgit-greatest-version | sed 's%\([0-9].*\)\.\([0-9].*\)\.\([0-9].*\)-\([0-9]\)%major=\1;minor=\2;revision=\3;release=\4%')    
     eval $variables    
     revision=$(($revision + 1))
 fi

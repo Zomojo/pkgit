@@ -1,4 +1,4 @@
-#!/usr/bin/env dash
+#!/usr/bin/env sh
 
 top_working_dir=$(mktemp -d)
 remote_repo=$top_working_dir/test-git-repo-remote
@@ -14,25 +14,6 @@ die()
 {
     echo >&2 "$1"
     exit 1
-}
-
-get_greatest_version() 
-{
-    if [ -z "$1" ]; then
-        tag_specification='*-*.*.*-*'
-    else
-        tag_specification='*'-"$1"-'*'
-    fi
-    
-    latest_sha1=$(git rev-list --date-order --tags="$tag_specification" --max-count=1)
-    if [ $? != 0 ]; then
-        die "getting lastest sha1 by date failed"
-    fi
-    
-    git tag -l "$tag_specification" --contains=$latest_sha1 | head -1 | rev | cut -d- -f-2 |rev
-    if [ $? != 0 ]; then
-        die "converting latest sha1 to a tag name failed"
-    fi
 }
 
 test_packaging()
@@ -64,7 +45,7 @@ create_branch_from_previous_tag()
         git checkout $branch_name >/dev/null 2>&1
     fi
     
-    greatest_version_on_branch=$(get_greatest_version $branch_name)
+    greatest_version_on_branch=$(pkgit-greatest-version $branch_name)
     #echo "greatest_version_on_branch=$greatest_version_on_branch"
     next_package_name=$package_name-$branch_name-$((release+1))
     echo $next_package_name
@@ -94,8 +75,8 @@ git commit -m "project one: Add spec file" >/dev/null
 git push  >/dev/null  2>&1
 
 # Test that the greatest version is 1.0.1-1
-if [ $(get_greatest_version) != 1.0.1-1 ]; then
-    die "Greatest version detected is $(get_greatest_version) but expected 1.0.1-1"
+if [ $(pkgit-greatest-version) != 1.0.1-1 ]; then
+    die "Greatest version detected is $(pkgit-greatest-version) but expected 1.0.1-1"
 fi
 
 # Actually put some build/install stuff into one.spec and then build the rpm
@@ -121,21 +102,21 @@ git commit -a -m "project one: Honesty in printfs."  >/dev/null
 # Test that the greatest version is 1.0.4-1
 cd $local_repo_1/projects/two
 test_packaging two
-if [ $(get_greatest_version) != 1.0.4-1 ]; then
-    die "Greatest version detected is $(get_greatest_version) but expected 1.0.4-1"
+if [ $(pkgit-greatest-version) != 1.0.4-1 ]; then
+    die "Greatest version detected is $(pkgit-greatest-version) but expected 1.0.4-1"
 fi
 
 # Test that packaging another project at the same sha1 uses the same version number
 cd $local_repo_1/projects/one
 test_packaging one 
-if [ $(get_greatest_version) != 1.0.4-1 ]; then
-    die "Greatest version detected is $(get_greatest_version) but expected 1.0.4-1"
+if [ $(pkgit-greatest-version) != 1.0.4-1 ]; then
+    die "Greatest version detected is $(pkgit-greatest-version) but expected 1.0.4-1"
 fi
 
 # Test re-packaging re-uses the existing tag
 test_packaging one
-if [ $(get_greatest_version) != 1.0.4-1 ]; then
-    die "Greatest version detected is $(get_greatest_version) but expected 1.0.4-1"
+if [ $(pkgit-greatest-version) != 1.0.4-1 ]; then
+    die "Greatest version detected is $(pkgit-greatest-version) but expected 1.0.4-1"
 fi
 
 # Now rollback the repo to tag one-1.0.2-1 and try to repackage
@@ -164,14 +145,19 @@ git tag -a "$next_package_name" -m "Packaging project one with the everyone chan
 git push origin $next_package_name >/dev/null 2>&1
 test_packaging one
 
-# Back to master and check
+# Back to master and check that packaging works
 git checkout master >/dev/null 2>&1
-exit
+
 sed -i "s|wold|world|g" english.c
 git commit -a -m "project one: Fix spelling of world."  >/dev/null
 sed -i "s|englsh|english|g" english.c
 git commit -a -m "project one: Fix spelling of english."  >/dev/null
 test_packaging one
+
+if [ $(pkgit-greatest-version) != 1.0.5-1 ]; then
+    die "Greatest version detected is $(pkgit-greatest-version) but expected 1.0.5-1"
+fi
+
 
 
 # Cleanup
