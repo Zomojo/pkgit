@@ -6,9 +6,7 @@
 # Echo out the directory when it is found.  
 # Exit code non-zero on error
 #
-
-# Set exit code to failure.  Let a success override this.
-exit_code=1
+set -e
 
 #
 # Ensure that the $1 of this function is not the root directory of the file system
@@ -17,12 +15,12 @@ exit_code=1
 ensure_not_root_directory()
 {
     current_dir=$(pwd)
-    cd $1 2>&1 /dev/null
+    cd $1 >/dev/null 2>&1 
     if [ $? != 0 ] || [ $(pwd) = / ]; then
-        cd $current_dir 2>&1 /dev/null
+        cd $current_dir >/dev/null 2>&1 
         exit 1   # Note the early exit from this script if we have hit the root directory of the file system
     fi
-    cd $current_dir &> /dev/null
+    cd $current_dir >/dev/null 2>&1 
 }
 
 #
@@ -33,22 +31,17 @@ fold_dots_in_path()
     current_dir=$(pwd)
     cd $1 2>&1 /dev/null
     pwd
-    cd $current_dir 2>&1 /dev/null
+    cd $current_dir >/dev/null 2>&1 
 }
 
 test_dir=$(pwd)
 ensure_not_root_directory $test_dir
-test -e $test_dir/.git
-exit_code=$?
 
-while [ $exit_code != 0 ]
+while [ ! -e $test_dir/.git ]
 do
     test_dir=$test_dir/..
     ensure_not_root_directory $test_dir
-    test -e $test_dir/.git
-    exit_code=$?
 done
 
-
 fold_dots_in_path $test_dir
-exit $exit_code
+
