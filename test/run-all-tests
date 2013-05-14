@@ -158,6 +158,21 @@ if [ $(pkgit-greatest-version) != 1.0.5-1 ]; then
     die "Greatest version detected is $(pkgit-greatest-version) but expected 1.0.5-1"
 fi
 
+# Create the three project that is based on cake
+cd $local_repo_1/projects/three
+pkgit-create-skeleton-spec-file
+git add three.spec
+git commit -m "project three: Add spec file" >/dev/null
+git push  >/dev/null  2>&1
+
+# Actually put some build/install stuff into one.spec and then build the rpm
+sed -i "s|%install|cd projects/three;./build.sh\n\n%install|g" three.spec
+git commit -a -m "project three: Fixes for spec file" >/dev/null
+test_packaging three
+
+if [ $(pkgit-greatest-version) != 1.0.6-1 ]; then
+    die "Greatest version detected is $(pkgit-greatest-version) but expected 1.0.6-1"
+fi
 
 
 # Cleanup

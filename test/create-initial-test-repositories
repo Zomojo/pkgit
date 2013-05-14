@@ -62,7 +62,7 @@ git commit -a -m "Initial commit"
 git push origin master   
 git tag -a manual-1.0.0-1 -m "Initial manual tag"
 git push origin manual-1.0.0-1  
-sleep 1
+
 
 # Clone the second local repo and add some files
 cd $top_working_dir  
@@ -70,10 +70,23 @@ git clone $remote_repo $local_repo_2
 
 cd $local_repo_2  
 cd projects   
+mkdir three
+cd three  
+create_helloworld german.c "Hallo Welt"
+
+cat >build.sh <<EOF
+cake --output="hw-german" german.c "\$@"
+EOF
+chmod +x build.sh
+
+git add .
+git commit -a -m "Initial commit of project 3"  
+
+cd $local_repo_2  
+cd projects   
 mkdir two
 cd two  
 create_helloworld spanish.c "hola mundo"
-
 
 cd $local_repo_2  
 git add .
