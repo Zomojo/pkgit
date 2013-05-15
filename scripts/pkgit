@@ -206,11 +206,12 @@ rpmdev-setuptree
 
 
 # rpmbuild expects to find the files in a tarball with the package-version as the top level directory.
-verbose_echo "Building tarball"
 mkdir -p $rpmhome/tmp
 cd $rpmhome/tmp >/dev/null 
 
 if [ -e $current_specfile_path/build.sh ] && [ $(grep -c cake $current_specfile_path/build.sh) -gt 0 ]; then    
+    verbose_echo "Using cake to generate the dependencies for the tarball"
+
     # copy over all the files for the given project    
     mkdir -p $rpmhome/tmp/${tag_name%-*}    
     cd $current_specfile_path >/dev/null 
@@ -223,23 +224,24 @@ if [ -e $current_specfile_path/build.sh ] && [ $(grep -c cake $current_specfile_
     
     # Since cake is available, use it to find the files required to package
     touch $rpmhome/tmp/${tag_name%-*}/.git    # This is so cake can find a "git repo" even when there isn't really one
+
     cd $current_specfile_path >/dev/null 
-    ./build.sh --file-list --quiet > $rpmhome/${spec}_files_to_tar.txt   # find all the dependencies
-    
-    cd $rpmhome/tmp/${tag_name%-*} >/dev/null    
-    while read next_file; do
-        #newfilename=$(echo $next_file | sed "s^${repo_root}/^^g")
+    ./build.sh --file-list --quiet | while read next_file; do
         newfilename=${next_file#$repo_root}
-        mkdir -p $(dirname ./$newfilename)
-        cp $next_file ./$newfilename
-    done < $rpmhome/${spec}_files_to_tar.txt 
+        mkdir -p $(dirname $rpmhome/tmp/${tag_name%-*}/$newfilename)
+        cp $repo_root/$next_file $rpmhome/tmp/${tag_name%-*}/$newfilename
+    done 
+
+    verbose_echo "Building tarball"
     cd $rpmhome/tmp >/dev/null 
     tar -cvzf $rpmhome/SOURCES/${tag_name%-*}.tgz . >/dev/null  2>&1
 else
     # Just guess that everything in the project directory is needed
     # We build up the expected tarball by going through a temporary symlink.
+    verbose_echo "Assuming that all files in the project are required for the tarball"
     ln -s $current_specfile_path $rpmhome/tmp/${tag_name%-*}
     find -L . -type f 2>/dev/null | perl -n -e 'print unless m!(/\.git/|.gitignore)!'  > $rpmhome/${spec}_files_to_tar.txt 
+    verbose_echo "Building tarball"
     tar -cvzf $rpmhome/SOURCES/${tag_name%-*}.tgz --files-from $rpmhome/${spec}_files_to_tar.txt >/dev/null  2>&1    
 fi
 
