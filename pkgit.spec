@@ -21,7 +21,7 @@ test %{buildroot} != "/" && rm -rf %{buildroot}
 mkdir -p %{buildroot}%{_bindir}
 mkdir -p %{buildroot}%{_mandir}/man1/
 
-install scripts/pkgit-* %{buildroot}%{_bindir}
+install scripts/pkgit* %{buildroot}%{_bindir}
 install -m 0644 *.1 %{buildroot}%{_mandir}/man1/
 
 %clean
