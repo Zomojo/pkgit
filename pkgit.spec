@@ -6,6 +6,7 @@ Source: %{name}-%{version}.tgz
 License: Proprietary, Redistribution not allowed
 Group: Applications/Other
 Buildroot: %_tmppath/%{name}-%{version}
+BuildArch: noarch
 
 %description
 pkgit - Assuming you are using git and don't mind sticking packaging versions into the git tags, this tool makes it easy to create RPMs.
