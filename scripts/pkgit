@@ -242,11 +242,11 @@ else
     ln -s $current_specfile_path $rpmhome/tmp/${tag_name%-*}
     find -L . -type f 2>/dev/null | perl -n -e 'print unless m!(/\.git/|.gitignore)!'  > $rpmhome/${spec}_files_to_tar.txt 
     verbose_echo "Building tarball"
-    tar -cvzf $rpmhome/SOURCES/${tag_name%-*}.tgz --files-from $rpmhome/${spec}_files_to_tar.txt >/dev/null  2>&1    
+    tar -cvzf $rpmhome/SOURCES/${tag_name%-*}.tgz --files-from $rpmhome/${spec}_files_to_tar.txt >/dev/null  2>&1   
+    rm $rpmhome/${spec}_files_to_tar.txt 
 fi
 
 cd $rpmhome  >/dev/null 
-rm ${spec}_files_to_tar.txt
 rm -rf $rpmhome/tmp
 
 # build RPM
