@@ -76,12 +76,15 @@ if [ $? != 0 ]; then
     die "Cannot run this script outside of a git repository"
 fi
 
-# Refuse to package if we aren't on branch master and there isn't an exact tag describing the sha1.  May remove this limitation in the future
-current_branch=$(git branch |grep '*'|cut -d' ' -f2-)
-if [ "$current_branch" != "master" ]; then
-    exact_tag=$(git describe --tags --match='*-*.*.*-*' --exact 2>/dev/null)
-    if [ $? != 0 ]; then
-        die "Refusing to publish: not on branch master and no exact tag describing where we are.  Try 'git checkout master' before using pkgit again"
+# If only doing a sandbox build then we don't need to check that we are on the master branch 
+if [ -n "$sandbox" ]; then
+    # Refuse to package if we aren't on branch master and there isn't an exact tag describing the sha1.  May remove this limitation in the future
+    current_branch=$(git branch |grep '*'|cut -d' ' -f2-)
+    if [ "$current_branch" != "master" ]; then
+        exact_tag=$(git describe --tags --match='*-*.*.*-*' --exact 2>/dev/null)
+        if [ $? != 0 ]; then
+            die "Refusing to publish: not on branch master and no exact tag describing where we are.  Try 'git checkout master' before using pkgit again"
+        fi
     fi
 fi
 
@@ -108,13 +111,16 @@ if [ $? != 0 ]; then
     die "Please commit them or remove them from the staging area."
 fi
 
-# Refuse to package if the local git repo is ahead of the central repo
-# Note that the other way around is OK.  That is, the central repo may be in advance of the local repo.
-# Make the assumption that if branch is not master (so on a detached HEAD or some other branch) then the user actually knows what they are doing
-if [ "$current_branch" = "master" ]; then
-    count_ahead=$(git log origin/master..HEAD --format=oneline |wc -l)
-    if [ $count_ahead -gt 0 ]; then
-        die "Refusing to publish: Your branch is ahead of 'origin/master' by $count_ahead commit(s). Please push these commits to the central repo before attempting to package." 
+# If only doing a sandbox build then we don't need to check that all has been pushed to the central repo
+if [ -n "$sandbox" ]; then
+    # Refuse to package if the local git repo is ahead of the central repo
+    # Note that the other way around is OK.  That is, the central repo may be in advance of the local repo.
+    # Make the assumption that if branch is not master (so on a detached HEAD or some other branch) then the user actually knows what they are doing
+    if [ "$current_branch" = "master" ]; then
+        count_ahead=$(git log origin/master..HEAD --format=oneline |wc -l)
+        if [ $count_ahead -gt 0 ]; then
+            die "Refusing to publish: Your branch is ahead of 'origin/master' by $count_ahead commit(s). Please push these commits to the central repo before attempting to package." 
+        fi
     fi
 fi
 
