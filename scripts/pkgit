@@ -14,6 +14,7 @@ Options:
   -h|--help  Print this message
   --debug  Executes "set -x" to put the shell into debug mode
   --version  Print the version number and exit
+  --sandbox  Don't tag the central repo, don't worry if we are off the master branch, don't worry if we are ahead of the central repo.  Use 888.888.888-888 as the version-release number
   -v|--verbose  Print out extra information rather than showing nothing
   -p|--pretend  Do all the work but don't actually execute the git tag command. Works best in conjunction with --verbose
   -m|--message  The message to be put into the annotated tag.  Defaults to "Tagging in preparation for packaging"
@@ -42,7 +43,7 @@ verbose_echo()
 # Parse command line arguments. We accept the usual GNU short and long args and convert them to space separated arguments
 # Note that we use `"$@"' to let each command-line parameter expand to a separate word. The quotes around `$@' are essential!
 # We need TEMP as the `eval set --' would nuke the return value of getopt.
-TEMP=$(getopt -s sh -o hvpm: -l "help,debug,version,verbose,pretend,message,sandbox:" -n "$(basename $0)" -- "$@")
+TEMP=$(getopt -s sh -o hvpm: -l "help,debug,version,verbose,pretend,message:,sandbox" -n "$(basename $0)" -- "$@")
 if [ $? != 0 ] ; then echo "Could not parse command line options..." >&2 ; usage ; fi
 eval set -- "$TEMP"  # Note the quotes around '$TEMP': they are essential!
 
@@ -52,7 +53,7 @@ while true; do
     case "$1" in
         "--debug"         )  set -x;debug="--debug" ;;
         "-h"|"--help"     )  usage ;;
-        "--version"       )  echo 0.0.7-1; exit 0 ;;
+        "--version"       )  echo 0.0.9-1; exit 0 ;;
         "--verbose"       )  verbose="--verbose" ;;
         "-p"|"--pretend"  )  pretend="--pretend" ;;
         "-m"|"--message"  )  shift; message="$1" ;;

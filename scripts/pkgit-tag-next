@@ -68,7 +68,7 @@ while true; do
     case "$1" in
         "--debug"         )  set -x;debug="--debug" ;;
         "-h"|"--help"     )  usage ;;
-        "--version"       )  echo 0.0.0-1; exit 0 ;;
+        "--version"       )  echo 0.0.9-1; exit 0 ;;
         "--verbose"       )  verbose="--verbose" ;;
         "-p"|"--pretend"  )  pretend="--pretend" ;;
         "-q"|"--quiet"    )  quiet="--quiet" ;;

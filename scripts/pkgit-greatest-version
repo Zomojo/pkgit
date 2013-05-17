@@ -16,7 +16,7 @@ if [ "$1" = "--help" ] || [ "$1" = "-h" ] || [ "$1" = "-?" ]; then
 fi
 
 if [ "$1" = "--version" ]; then
-    echo 0.0.0-1
+    echo 0.0.9-1
     exit
 fi
 

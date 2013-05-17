@@ -8,6 +8,18 @@
 #
 set -e
 
+if [ "$1" = "--help" ] || [ "$1" = "-h" ] || [ "$1" = "-?" ]; then
+    echo "Usage: $(basename $0) [-?|-h|--help] [--version]"
+    echo "Find the path of the root of the git repository we are currently inside."
+    exit
+fi
+
+if [ "$1" = "--version" ]; then
+    echo 0.0.9-1
+    exit
+fi
+
+
 #
 # Ensure that the $1 of this function is not the root directory of the file system
 # If it is then exit the script with an error code
