@@ -119,7 +119,7 @@ if [ "$current_branch" = "master" ]; then
 fi
 
 # Time to tag the repo.
-if [ -n $sandbox ]; then
+if [ -n "$sandbox" ]; then
     tag_cmd="$(dirname $0)/pkgit-tag-next $debug --message=\"$message\" $pretend $verbose ${spec%.spec} |tail -1"
     verbose_echo "Calling $tag_cmd"
     tag_name=$(eval $tag_cmd)
