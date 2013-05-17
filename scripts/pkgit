@@ -77,7 +77,7 @@ if [ $? != 0 ]; then
 fi
 
 # If only doing a sandbox build then we don't need to check that we are on the master branch 
-if [ -n "$sandbox" ]; then
+if [ -z "$sandbox" ]; then
     # Refuse to package if we aren't on branch master and there isn't an exact tag describing the sha1.  May remove this limitation in the future
     current_branch=$(git branch |grep '*'|cut -d' ' -f2-)
     if [ "$current_branch" != "master" ]; then
@@ -112,7 +112,7 @@ if [ $? != 0 ]; then
 fi
 
 # If only doing a sandbox build then we don't need to check that all has been pushed to the central repo
-if [ -n "$sandbox" ]; then
+if [ -z "$sandbox" ]; then
     # Refuse to package if the local git repo is ahead of the central repo
     # Note that the other way around is OK.  That is, the central repo may be in advance of the local repo.
     # Make the assumption that if branch is not master (so on a detached HEAD or some other branch) then the user actually knows what they are doing
