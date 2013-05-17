@@ -134,7 +134,7 @@ if [ -z "$sandbox" ]; then
     fi
 else
     tag_name=${spec%.spec}-888.888.888-888
-    verbose_echo "Sandbox version being created.  Assigned version = $tagname"
+    verbose_echo "Sandbox version being created.  Assigned version = $tag_name"
 fi    
 
 # Extract the version, release from the tag_name
