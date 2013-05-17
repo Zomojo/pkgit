@@ -180,7 +180,7 @@ relative_project_path=$(echo $current_specfile_path | sed s^$current_repo_root^^
 repopath=$(git remote show origin |head -n 2 |tail -n1|sed 's/Fetch URL:/git clone/g')
 spec_repopath="$repopath yourreponame \&\& cd yourreponame${relative_project_path} \&\& git checkout $tag_name"
 verbose_echo "$spec_repopath"
-sed -i "s|%description|%description\nPackage Source: $spec_repopath\n|g" $spec
+sed -i "s|\(%description.*\)|\1\nPackage Source: $spec_repopath\n|g" $spec
 
 # Now make the package
 
