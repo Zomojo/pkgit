@@ -210,6 +210,7 @@ mkdir -p $rpmhome/tmp
 cd $rpmhome/tmp >/dev/null 
 
 if [ -e $current_specfile_path/build.sh ] && [ $(grep -c cake $current_specfile_path/build.sh) -gt 0 ]; then    
+    # This is the complex packaging case where needed files also exist in directories above and sideways from this project directory
     verbose_echo "Using cake to generate the dependencies for the tarball"
 
     # copy over all the files for the given project    
@@ -236,8 +237,9 @@ if [ -e $current_specfile_path/build.sh ] && [ $(grep -c cake $current_specfile_
     cd $rpmhome/tmp >/dev/null 
     tar -cvzf $rpmhome/SOURCES/${tag_name%-*}.tgz . >/dev/null  2>&1
 else
+    # This is the simple packaging case where all files needed are in the current directory and subdirectories
     # Just guess that everything in the project directory is needed
-    # We build up the expected tarball by going through a temporary symlink.
+    # We build up the expected directory structure in the tarball by going through a temporary symlink.
     verbose_echo "Assuming that all files in the project are required for the tarball"
     ln -s $current_specfile_path $rpmhome/tmp/${tag_name%-*}
     find -L . -type f 2>/dev/null | perl -n -e 'print unless m!(/\.git/|.gitignore)!'  > $rpmhome/${spec}_files_to_tar.txt 
@@ -255,7 +257,7 @@ cp $current_specfile_path/$spec $rpmhome/SPECS
 cd $rpmhome/SPECS  >/dev/null
 rpmbuild --clean --quiet -ba $(basename $spec)
 cd $rpmhome >/dev/null
-find -name "*.rpm" -exec mv {} $current_specfile_path \;  >/dev/null
+find -name "${tag_name%-*}*.rpm" -exec mv {} $current_specfile_path \;  >/dev/null
 
 # reset the spec file
 verbose_echo "Cleaning up"
