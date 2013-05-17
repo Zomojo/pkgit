@@ -42,7 +42,7 @@ verbose_echo()
 # Parse command line arguments. We accept the usual GNU short and long args and convert them to space separated arguments
 # Note that we use `"$@"' to let each command-line parameter expand to a separate word. The quotes around `$@' are essential!
 # We need TEMP as the `eval set --' would nuke the return value of getopt.
-TEMP=$(getopt -s sh -o hvpm: -l "help,debug,version,verbose,pretend,message:" -n "$(basename $0)" -- "$@")
+TEMP=$(getopt -s sh -o hvpm: -l "help,debug,version,verbose,pretend,message,sandbox:" -n "$(basename $0)" -- "$@")
 if [ $? != 0 ] ; then echo "Could not parse command line options..." >&2 ; usage ; fi
 eval set -- "$TEMP"  # Note the quotes around '$TEMP': they are essential!
 
