@@ -52,10 +52,11 @@ while true; do
     case "$1" in
         "--debug"         )  set -x;debug="--debug" ;;
         "-h"|"--help"     )  usage ;;
-        "--version"       )  echo 0.0.0-1; exit 0 ;;
+        "--version"       )  echo 0.0.7-1; exit 0 ;;
         "--verbose"       )  verbose="--verbose" ;;
         "-p"|"--pretend"  )  pretend="--pretend" ;;
         "-m"|"--message"  )  shift; message="$1" ;;
+        "--sandbox"       )  sandbox="--sandbox" ;;
         "--"              )  shift ; break ;;
         *                 )  die "getopt error!" ; exit 1 ;;
     esac
@@ -118,12 +119,17 @@ if [ "$current_branch" = "master" ]; then
 fi
 
 # Time to tag the repo.
-tag_cmd="$(dirname $0)/pkgit-tag-next $debug --message=\"$message\" $pretend $verbose ${spec%.spec} |tail -1"
-verbose_echo "Calling $tag_cmd"
-tag_name=$(eval $tag_cmd)
-if [ $? != 0 ]; then
-    die "Tagging unsuccessful.  Can't proceed. :("
-fi
+if [ -n $sandbox ]; then
+    tag_cmd="$(dirname $0)/pkgit-tag-next $debug --message=\"$message\" $pretend $verbose ${spec%.spec} |tail -1"
+    verbose_echo "Calling $tag_cmd"
+    tag_name=$(eval $tag_cmd)
+    if [ $? != 0 ]; then
+        die "Tagging unsuccessful.  Can't proceed. :("
+    fi
+else
+    tag_name=${spec%.spec}-888.888.888-888
+    verbose_echo "Sandbox version being created.  Assigned version = $tagname"
+fi    
 
 # Extract the version, release from the tag_name
 release=${tag_name##*-}                # Release is everything after the last minus sign.  Mostly this will be 1
