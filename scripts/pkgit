@@ -270,7 +270,7 @@ cp $current_specfile_path/$spec $rpmhome/SPECS
 cd $rpmhome/SPECS  >/dev/null
 rpmbuild --clean --quiet -ba $(basename $spec)
 cd $rpmhome >/dev/null
-find -name "${tag_name%-*}*.rpm" -exec mv {} $current_specfile_path \;  >/dev/null
+find -name "${spec%.spec}*$version-$release*.rpm" -exec mv {} $current_specfile_path \;  >/dev/null
 
 # reset the spec file
 verbose_echo "Cleaning up"
