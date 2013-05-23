@@ -5,7 +5,7 @@
 # create the manual page
 # Do not edit the *.1 files explicilty. Let this script create them as part of the packaging process.
 
-for path in $(ls scripts/pkgit-*|grep -v ~); do
+for path in $(ls scripts/pkgit*|grep -v ~); do
     script=$(basename $path)
     echo Creating documentation for $script
     if [ -e $script.help2man.include ]; then
