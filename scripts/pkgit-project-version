@@ -78,7 +78,7 @@ elif [ -s *.spec ]; then
     version=$(grep Version *.spec | sed 's^Version[ ]*:[ ]*^^' |sed 's![^\.0-9]!!g' | tr -d '[:space:]' )|| exit 1
     # check that version actually is a version number, not a placeholder like %version
     if [ -n $version ]; then
-        release=$(grep Release *.spec| sed 's^Release[ ]*:[ ]*^^'| sed 's@\([0-9\.]+*\)\.[\.a-zA-Z].*@\1@g' | tr -d '[:space:]' )
+        release=$(grep Release *.spec| sed 's^Release[ ]*:[ ]*^^'|  sed 's@\([0-9.]\+\)[%.]*.*@\1@g' | tr -d '[:space:]' )
         echo $project_name-$version-$release
         exit
     fi
