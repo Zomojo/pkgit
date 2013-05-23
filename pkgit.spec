@@ -6,6 +6,7 @@ Source: %{name}-%{version}.tgz
 License: Proprietary, Redistribution not allowed
 Group: Applications/Other
 Buildroot: %_tmppath/%{name}-%{version}
+BuildRequires: help2man
 BuildArch: noarch
 
 %description
