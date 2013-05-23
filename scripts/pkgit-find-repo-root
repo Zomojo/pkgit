@@ -15,7 +15,7 @@ if [ "$1" = "--help" ] || [ "$1" = "-h" ] || [ "$1" = "-?" ]; then
 fi
 
 if [ "$1" = "--version" ]; then
-    echo 0.0.9-1
+    echo PKGIT_PROJECT_VERSION
     exit
 fi
 

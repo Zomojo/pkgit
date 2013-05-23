@@ -17,6 +17,10 @@ pkgit - Assuming you are using git and don't mind sticking packaging versions in
 
 %build
 test %{buildroot} != "/" && rm -rf %{buildroot}
+# Search and replace any PKGIT_PROJECT_VERSION with an actual version
+project_version=$pkgit-project-version
+find . -print0 |xargs -0 sed -i "s/PKGIT_PROJECT_VERSION/$project_version/g"
+./create-documentation.sh
 
 %install
 mkdir -p %{buildroot}%{_bindir}
