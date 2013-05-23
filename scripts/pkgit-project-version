@@ -1,0 +1,89 @@
+#!/usr/bin/env sh
+
+# Rules for assigning the project version are
+# 1) If we are in a git repository then
+#   a) If there are no local changes to files then use an exact git tag if it exists (be careful to get the project name correct)
+#   b) 
+# 2) If no exact tag then make up a version based on the greatest version found in the git repo
+# 3) If not in a git repo then look for a spec file and extract a version number from there
+# 4) Give up and guess 888.888.888-888
+
+
+usage()
+{
+cat <<EOF
+Usage: $(basename $0) [-h|--help] [--version]
+
+Generate a version number. 
+
+Options:
+  -h|-?|--help  Print this message  
+  --version  Print the version number and exit
+  
+Examples:
+$(basename $0)
+EOF
+   
+exit 0
+}
+
+if [ "$1" = "--help" ] || [ "$1" = "-h" ] || [ "$1" = "-?" ]; then
+    usage
+    exit
+fi
+
+if [ "$1" = "--version" ]; then
+    echo 0.0.9-1
+    exit
+fi
+
+
+# Check what project this is by finding either a spec file or using the directory name
+project_name=$(basename $(pwd))
+spec=$(ls *spec 2>/dev/null |head -1)
+if [ -n "$spec" ]; then
+    project_name=${spec%.spec}
+fi
+
+# Check we are in a git repo
+git status >/dev/null 2>&1
+if [ $? = 0 ]; then    
+    # Gather together the information about the state of the repo        
+    version=$(pkgit-greatest-version 2>/dev/null)
+    sha1=$(git rev-parse --short HEAD 2>/dev/null)    
+    num_files_changed=$(git diff --shortstat 2> /dev/null | tail -n1|cut -d' ' -f2)
+    if [ -n "$num_files_changed" ]; then
+        num_files_changed_extension=.$num_files_changed
+    fi
+
+    exact_tag=$(git describe --exact 2>/dev/null)
+    if [ $? = 0 ]; then
+        # Check that the exact tag is for this project
+        variables=$(echo $exact_tag | sed 's%\(.*\)-\([0-9].*\)\.\([0-9].*\)\.\([0-9].*\)-\([0-9]\)%exact_tag_package=\1;major=\2;minor=\3;revision=\4;release=\5%' | tr '\n' ' ')
+        eval $variables
+        if [ "$exact_tag_package" = "$project_name" ]; then
+            echo ${exact_tag}${num_files_changed_extension}
+        else
+            # Getting here means there was an exact version tagged for another package.  Just reuse the version part like pkgit-tag-next would do.
+            echo $project_name-$major.$minor.$revision-${release}${num_files_changed_extension}
+        fi
+        exit
+    else 
+        echo ${project_name}-$version-${sha1}${num_files_changed_extension}
+    fi
+    exit
+elif [ -s *.spec ]; then
+    # So we are not in a git repository
+    # Try grabbing a defined version from a spec file
+    version=$(grep Version *.spec | sed 's^Version[ ]*:[ ]*^^' |sed 's![^\.0-9]!!g' | tr -d '[:space:]' )|| exit 1
+    # check that version actually is a version number, not a placeholder like %version
+    if [ -n $version ]; then
+        release=$(grep Release *.spec| sed 's^Release[ ]*:[ ]*^^'| sed 's@\([0-9\.]+*\)\.[\.a-zA-Z].*@\1@g' | tr -d '[:space:]' )
+        echo $project_name-$version-$release
+        exit
+    fi
+fi
+
+echo $project_name-888.888.888-888
+
+

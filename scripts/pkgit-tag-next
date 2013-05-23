@@ -87,7 +87,7 @@ fi
 package="$1"
 
 # Make sure the tags are up to date with the central repo
-git fetch --tags  2>&1 >/dev/null
+git fetch --tags  >/dev/null 2>&1
 
 # Ensure we are on the master branch or that there is already an exact tag for the sha1
 current_branch=$(git branch |grep '*'|cut -d' ' -f2)

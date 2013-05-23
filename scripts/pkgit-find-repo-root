@@ -41,7 +41,7 @@ ensure_not_root_directory()
 fold_dots_in_path()
 {
     current_dir=$(pwd)
-    cd $1 2>&1 /dev/null
+    cd $1 >/dev/null 2>&1
     pwd
     cd $current_dir >/dev/null 2>&1 
 }

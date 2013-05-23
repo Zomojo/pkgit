@@ -72,7 +72,7 @@ fi
 verbose_echo "Found spec file = $spec"
 
 # Check we are in a git repo
-git status 2>&1 >/dev/null
+git status >/dev/null 2>&1
 if [ $? != 0 ]; then
     die "Cannot run this script outside of a git repository"
 fi
@@ -248,7 +248,7 @@ if [ -e $current_specfile_path/build.sh ] && [ $(grep -c cake $current_specfile_
 
     verbose_echo "Building tarball"
     cd $rpmhome/tmp >/dev/null 
-    tar -cvzf $rpmhome/SOURCES/${tag_name%-*}.tgz . >/dev/null  2>&1
+    tar -cvzf $rpmhome/SOURCES/${tag_name%-*}.tgz . >/dev/null 2>&1
 else
     # This is the simple packaging case where all files needed are in the current directory and subdirectories
     # Just guess that everything in the project directory is needed
