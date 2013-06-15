@@ -43,11 +43,13 @@ verbose_echo()
 # Parse command line arguments. We accept the usual GNU short and long args and convert them to space separated arguments
 # Note that we use `"$@"' to let each command-line parameter expand to a separate word. The quotes around `$@' are essential!
 # We need TEMP as the `eval set --' would nuke the return value of getopt.
-TEMP=$(getopt -s sh -o hvpm: -l "help,debug,version,verbose,pretend,message:,sandbox" -n "$(basename $0)" -- "$@")
+TEMP=$(getopt -s sh -o hvqpm: -l "help,debug,version,verbose,quiet,pretend,message:,sandbox" -n "$(basename $0)" -- "$@")
 if [ $? != 0 ] ; then echo "Could not parse command line options..." >&2 ; usage ; fi
 eval set -- "$TEMP"  # Note the quotes around '$TEMP': they are essential!
 
 message="Tagging in preparation for packaging"
+verbose="--verbose"   # Be verbose by default.  The users seem to prefer that rather than complete silence
+
 # Overide the defaults with anything from the command line
 while true; do
     case "$1" in
@@ -55,6 +57,7 @@ while true; do
         "-h"|"--help"     )  usage ;;
         "--version"       )  echo PKGIT_PROJECT_VERSION; exit 0 ;;
         "--verbose"       )  verbose="--verbose" ;;
+        "--quiet"         )  unset verbose ;;
         "-p"|"--pretend"  )  pretend="--pretend" ;;
         "-m"|"--message"  )  shift; message="$1" ;;
         "--sandbox"       )  sandbox="--sandbox" ;;
@@ -178,24 +181,18 @@ if [ $count -gt 0 ]; then
     fi
 fi
 
-
-# If anything goes wrong after here we need to revert the changes we locally make to the spec file
-trap "{ git checkout $spec; exit 2; }"  INT TERM ABRT 
-
-verbose_echo "Inserting correct version numbers and package source into spec file"
-sed -i "s/%{version_base}/$version/" $spec
-sed -i "s/%{version_release}/$release/" $spec
-
+# Figure out some information about the repository and project spec file for later use
 current_repo_root=$($(dirname $0)/pkgit-find-repo-root)
 current_specfile_path=$(pwd)
 # Note that the character after the 's' in the sed command is defined by sed to be the command separator character. i.e., you don't have to use '/'
 relative_project_path=$(echo $current_specfile_path | sed s^$current_repo_root^^g)   
 repopath=$(git remote show origin |head -n 2 |tail -n1|sed 's/Fetch URL:/git clone/g')
 spec_repopath="$repopath yourreponame \&\& cd yourreponame${relative_project_path} \&\& git checkout $tag_name"
-verbose_echo "$spec_repopath"
-sed -i "s|\(%description.*\)|\1\nPackage Source: $spec_repopath\n|g" $spec
 
+
+#
 # Now make the package
+#
 
 # At this point in time we will only support the source gzipped tarball with the .tgz extension
 grep Source: $spec |grep tgz >/dev/null
@@ -217,6 +214,15 @@ mkdir -p $rpmhome
 cd $rpmhome  >/dev/null 
 rpmdev-setuptree
 
+# copy the almost complete spec file from the project dir to the rpmbuild dir and fill in the missing bits
+verbose_echo "Copying spec file and inserting correct version numbers and package source into spec file"
+cp $current_specfile_path/$spec $rpmhome/SPECS/
+sed -i "s/%{version_base}/$version/" $rpmhome/SPECS/$spec
+verbose_echo "Inserting version = $version"
+sed -i "s/%{version_release}/$release/" $rpmhome/SPECS/$spec
+verbose_echo "Inserting release = $release"
+sed -i "s|\(%description.*\)|\1\nPackage Source: $spec_repopath\n|g" $rpmhome/SPECS/$spec
+verbose_echo "Inserting Package Source: $spec_repopath"
 
 # rpmbuild expects to find the files in a tarball with the package-version as the top level directory.
 mkdir -p $rpmhome/tmp
@@ -265,18 +271,16 @@ cd $rpmhome  >/dev/null
 rm -rf $rpmhome/tmp
 
 # build RPM
-verbose_echo "Building RPM"
-cp $current_specfile_path/$spec $rpmhome/SPECS
+verbose_echo "Building RPM with rpmbuild"
 cd $rpmhome/SPECS  >/dev/null
 rpmbuild --clean --quiet -ba $(basename $spec)
 cd $rpmhome >/dev/null
+
+# move the newly built rpms to the project directory
 find -name "${spec%.spec}*$version-$release*.rpm" -exec mv {} $current_specfile_path \;  >/dev/null
 
-# reset the spec file
-verbose_echo "Cleaning up"
 cd $current_specfile_path  >/dev/null
-git checkout $spec >/dev/null
-#rm -rf $rpmhome/*
+
 
 
 
