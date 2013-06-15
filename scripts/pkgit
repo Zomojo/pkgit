@@ -209,10 +209,10 @@ if [ $top_level_build_dir = "/" ]; then
 fi
 
 verbose_echo "Building in $top_level_build_dir"
-rpmhome=$top_level_build_dir/rpmbuild
-mkdir -p $rpmhome
+rpmhome=$top_level_build_dir/rpmbuild 
+mkdir -p $rpmhome  || die "Could not make the $rpmhome directory"
 cd $rpmhome  >/dev/null 
-rpmdev-setuptree
+rpmdev-setuptree  || die "Failed to create the expected rpmbuild expected directory structure"
 
 # copy the almost complete spec file from the project dir to the rpmbuild dir and fill in the missing bits
 verbose_echo "Copying spec file and inserting correct version numbers and package source into spec file"
@@ -225,7 +225,7 @@ sed -i "s|\(%description.*\)|\1\nPackage Source: $spec_repopath\n|g" $rpmhome/SP
 verbose_echo "Inserting Package Source: $spec_repopath"
 
 # rpmbuild expects to find the files in a tarball with the package-version as the top level directory.
-mkdir -p $rpmhome/tmp
+mkdir -p $rpmhome/tmp  || die "Could not create a temp directory to build the tarball in"
 cd $rpmhome/tmp >/dev/null 
 
 if [ -e $current_specfile_path/build.sh ] && [ $(grep -c cake $current_specfile_path/build.sh) -gt 0 ]; then    
@@ -233,13 +233,13 @@ if [ -e $current_specfile_path/build.sh ] && [ $(grep -c cake $current_specfile_
     verbose_echo "Using cake to generate the dependencies for the tarball"
 
     # copy over all the files for the given project    
-    mkdir -p $rpmhome/tmp/${tag_name%-*}    
+    mkdir -p $rpmhome/tmp/${tag_name%-*}  || die "Could not create a specific project directory to build the tarball in"
     cd $current_specfile_path >/dev/null 
     repo_root=$($(dirname $0)/pkgit-find-repo-root)
     cd $rpmhome/tmp/${tag_name%-*} >/dev/null     
     
     relative_specfile_path=${current_specfile_path#$repo_root}
-    mkdir -p $rpmhome/tmp/${tag_name%-*}/$relative_specfile_path
+    mkdir -p $rpmhome/tmp/${tag_name%-*}/$relative_specfile_path  || die "Could not create $relative_specfile_path to build the tarball in"
     rsync -a "$current_specfile_path/" $rpmhome/tmp/${tag_name%-*}/$relative_specfile_path/
     
     # Since cake is available, use it to find the files required to package
