@@ -81,6 +81,7 @@ fi
 
 # Actually put some build/install stuff into one.spec and then build the rpm
 sed -i "s|%install|./build.sh\n\n%install|g" one.spec
+sed -i "s|%projectdir|projects/one|g" one.spec
 git commit -a -m "project one: Fixes for spec file" >/dev/null
 test_packaging one
 
@@ -88,6 +89,7 @@ test_packaging one
 cd $local_repo_1/projects/two
 pkgit-create-skeleton-spec-file
 sed -i "s|%install|make spanish\n\n%install|g" two.spec
+sed -i "s|%projectdir|projects/two|g" two.spec
 git add two.spec
 git commit -m "project two: Add spec file" >/dev/null
 test_packaging two
@@ -161,12 +163,13 @@ fi
 # Create the three project that is based on cake
 cd $local_repo_1/projects/three
 pkgit-create-skeleton-spec-file
+sed -i "s|%projectdir|projects/three|g" three.spec
 git add three.spec
 git commit -m "project three: Add spec file" >/dev/null
 git push  >/dev/null  2>&1
 
 # Actually put some build/install stuff into one.spec and then build the rpm
-sed -i "s|%install|cd projects/three;./build.sh\n\n%install|g" three.spec
+sed -i "s|%install|./build.sh\n\n%install|g" three.spec
 git commit -a -m "project three: Fixes for spec file" >/dev/null
 test_packaging three
 

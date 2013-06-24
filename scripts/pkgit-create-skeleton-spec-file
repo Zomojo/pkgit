@@ -48,11 +48,12 @@ $project_name - What does this project actually do?
 
 %build
 test %{buildroot} != "/" && rm -rf %{buildroot}
+cd %projectdir
 
 %install
 mkdir -p %{buildroot}%{_bindir}
 mkdir -p %{buildroot}%{_mandir}/man1/
-
+cd %projectdir
 install \$(find -L . -type f -executable  2>/dev/null | perl -n -e 'print unless m!(/test/|/bin/|/\.git/|.gitignore|.*\.rpm$/)!') %{buildroot}%{_bindir}
 
 %clean

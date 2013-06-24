@@ -185,7 +185,7 @@ fi
 current_repo_root=$($(dirname $0)/pkgit-find-repo-root)
 current_specfile_path=$(pwd)
 # Note that the character after the 's' in the sed command is defined by sed to be the command separator character. i.e., you don't have to use '/'
-relative_project_path=$(echo $current_specfile_path | sed s^$current_repo_root^^g)   
+relative_project_path=$(echo $current_specfile_path | sed "s^${current_repo_root}/*^^g")   
 repopath=$(git remote show origin |head -n 2 |tail -n1|sed 's/Fetch URL:/git clone/g')
 spec_repopath="$repopath yourreponame \&\& cd yourreponame${relative_project_path} \&\& git checkout $tag_name"
 
@@ -217,30 +217,37 @@ rpmdev-setuptree  || die "Failed to create the expected rpmbuild expected direct
 # copy the almost complete spec file from the project dir to the rpmbuild dir and fill in the missing bits
 verbose_echo "Copying spec file and inserting correct version numbers and package source into spec file"
 cp $current_specfile_path/$spec $rpmhome/SPECS/
-sed -i "s/%{version_base}/$version/" $rpmhome/SPECS/$spec
+sed -i "s/%{*version_base}*/$version/" $rpmhome/SPECS/$spec
 verbose_echo "Inserting version = $version"
-sed -i "s/%{version_release}/$release/" $rpmhome/SPECS/$spec
+sed -i "s/%{*version_release}*/$release/" $rpmhome/SPECS/$spec
 verbose_echo "Inserting release = $release"
-sed -i "s|\(%description.*\)|\1\nPackage Source: $spec_repopath\n|g" $rpmhome/SPECS/$spec
+sed -i "s|\(%{*description}*.*\)|\1\nPackage Source: $spec_repopath\n|g" $rpmhome/SPECS/$spec
 verbose_echo "Inserting Package Source: $spec_repopath"
+sed -i "s|%{*projectdir}*}|$relative_project_path|g" $rpmhome/SPECS/$spec
+verbose_echo "Inserting %projectdir = $relative_project_path"
 
 # rpmbuild expects to find the files in a tarball with the package-version as the top level directory.
 mkdir -p $rpmhome/tmp  || die "Could not create a temp directory to build the tarball in"
 cd $rpmhome/tmp >/dev/null 
 
+# Copy over all the files for the given project  
+# Assume we need all files in the current directory and subdirectories  
+mkdir -p $rpmhome/tmp/${tag_name%-*}  || die "Could not create a specific project directory to build the tarball in"
+cd $current_specfile_path >/dev/null 
+repo_root=$($(dirname $0)/pkgit-find-repo-root)
+cd $rpmhome/tmp/${tag_name%-*} >/dev/null     
+
+relative_specfile_path=${current_specfile_path#$repo_root}
+mkdir -p $rpmhome/tmp/${tag_name%-*}/$relative_specfile_path/  || die "Could not create $relative_specfile_path to build the tarball in"
+if [ -n $verbose ]; then rsync_options="-vv"; else rsync_options="--quiet";fi
+rsync -a $rsync_options "$current_specfile_path/" $rpmhome/tmp/${tag_name%-*}/$relative_specfile_path/
+
+#copy in the modified spec file
+cp $rpmhome/SPECS/$spec $rpmhome/tmp/${tag_name%-*}/$relative_specfile_path/
+
 if [ -e $current_specfile_path/build.sh ] && [ $(grep -c cake $current_specfile_path/build.sh) -gt 0 ]; then    
     # This is the complex packaging case where needed files also exist in directories above and sideways from this project directory
     verbose_echo "Using cake to generate the dependencies for the tarball"
-
-    # copy over all the files for the given project    
-    mkdir -p $rpmhome/tmp/${tag_name%-*}  || die "Could not create a specific project directory to build the tarball in"
-    cd $current_specfile_path >/dev/null 
-    repo_root=$($(dirname $0)/pkgit-find-repo-root)
-    cd $rpmhome/tmp/${tag_name%-*} >/dev/null     
-    
-    relative_specfile_path=${current_specfile_path#$repo_root}
-    mkdir -p $rpmhome/tmp/${tag_name%-*}/$relative_specfile_path  || die "Could not create $relative_specfile_path to build the tarball in"
-    rsync -a "$current_specfile_path/" $rpmhome/tmp/${tag_name%-*}/$relative_specfile_path/
     
     # Since cake is available, use it to find the files required to package
     touch $rpmhome/tmp/${tag_name%-*}/.git    # This is so cake can find a "git repo" even when there isn't really one
@@ -251,21 +258,12 @@ if [ -e $current_specfile_path/build.sh ] && [ $(grep -c cake $current_specfile_
         mkdir -p $(dirname $rpmhome/tmp/${tag_name%-*}/$newfilename)
         cp $repo_root/$next_file $rpmhome/tmp/${tag_name%-*}/$newfilename
     done 
-
-    verbose_echo "Building tarball"
-    cd $rpmhome/tmp >/dev/null 
-    tar -cvzf $rpmhome/SOURCES/${tag_name%-*}.tgz . >/dev/null 2>&1
-else
-    # This is the simple packaging case where all files needed are in the current directory and subdirectories
-    # Just guess that everything in the project directory is needed
-    # We build up the expected directory structure in the tarball by going through a temporary symlink.
-    verbose_echo "Assuming that all files in the project are required for the tarball"
-    ln -s $current_specfile_path $rpmhome/tmp/${tag_name%-*}
-    find -L . -type f 2>/dev/null | perl -n -e 'print unless m!(/\.git/|.gitignore)!'  > $rpmhome/${spec}_files_to_tar.txt 
-    verbose_echo "Building tarball"
-    tar -cvzf $rpmhome/SOURCES/${tag_name%-*}.tgz --files-from $rpmhome/${spec}_files_to_tar.txt >/dev/null  2>&1   
-    rm $rpmhome/${spec}_files_to_tar.txt 
 fi
+
+verbose_echo "Building tarball"
+cd $rpmhome/tmp >/dev/null 
+tar -cvzf $rpmhome/SOURCES/${tag_name%-*}.tgz . >/dev/null 2>&1
+
 
 cd $rpmhome  >/dev/null 
 rm -rf $rpmhome/tmp
