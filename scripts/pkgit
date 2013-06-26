@@ -223,7 +223,7 @@ sed -i "s/%{*version_release}*/$release/" $rpmhome/SPECS/$spec
 verbose_echo "Inserting release = $release"
 sed -i "s|\(%{*description}*.*\)|\1\nPackage Source: $spec_repopath\n|g" $rpmhome/SPECS/$spec
 verbose_echo "Inserting Package Source: $spec_repopath"
-sed -i "s|%{*projectdir}*}|$relative_project_path|g" $rpmhome/SPECS/$spec
+sed -i "s|%{*projectdir}*|$relative_project_path|g" $rpmhome/SPECS/$spec
 verbose_echo "Inserting %projectdir = $relative_project_path"
 
 # rpmbuild expects to find the files in a tarball with the package-version as the top level directory.
