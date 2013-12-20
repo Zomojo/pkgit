@@ -6,7 +6,7 @@ umask 0002
 usage()
 {
 cat <<EOF
-Usage: $(basename $0) [-h|--help] [--debug] [--version] [-v|--verbose] [-p|--pretend] [-m|--message=<meaningful message>]
+Usage: $(basename $0) [-h|--help] [--debug] [--version] [--sandbox] [--unclean] [-v|--verbose] [-p|--pretend] [-m|--message=<meaningful message>]
 
 Publish a package using the spec file in the current directory
 
@@ -15,6 +15,7 @@ Options:
   --debug  Executes "set -x" to put the shell into debug mode
   --version  Print the version number and exit
   --sandbox  Don't tag the central repo, don't worry if we are off the master branch, don't worry if we are ahead of the central repo.  Use 888.888.888-888 as the version-release number
+  --unclean  Package up without checking that files are checked in.  This implies --sandbox. Note that --sandbox still wants you to check your work in to the local repo and this lets you work around that restriction.
   -v|--verbose  Print out extra information rather than showing nothing
   -p|--pretend  Do all the work but don't actually execute the git tag command. Works best in conjunction with --verbose
   -m|--message  The message to be put into the annotated tag.  Defaults to "Tagging in preparation for packaging"
@@ -43,7 +44,7 @@ verbose_echo()
 # Parse command line arguments. We accept the usual GNU short and long args and convert them to space separated arguments
 # Note that we use `"$@"' to let each command-line parameter expand to a separate word. The quotes around `$@' are essential!
 # We need TEMP as the `eval set --' would nuke the return value of getopt.
-TEMP=$(getopt -s sh -o hvqpm: -l "help,debug,version,verbose,quiet,pretend,message:,sandbox" -n "$(basename $0)" -- "$@")
+TEMP=$(getopt -s sh -o hvqpm: -l "help,debug,version,verbose,quiet,pretend,message:,sandbox,unclean" -n "$(basename $0)" -- "$@")
 if [ $? != 0 ] ; then echo "Could not parse command line options..." >&2 ; usage ; fi
 eval set -- "$TEMP"  # Note the quotes around '$TEMP': they are essential!
 
@@ -61,6 +62,7 @@ while true; do
         "-p"|"--pretend"  )  pretend="--pretend" ;;
         "-m"|"--message"  )  shift; message="$1" ;;
         "--sandbox"       )  sandbox="--sandbox" ;;
+        "--unclean"       )  unclean="--unclean"; sandbox="--sandbox" ;;
         "--"              )  shift ; break ;;
         *                 )  die "getopt error!" ; exit 1 ;;
     esac
@@ -92,27 +94,30 @@ if [ -z "$sandbox" ]; then
     fi
 fi
 
-# Refuse to package if there are untracked files (if .gitignore knows about them then it is OK to proceed)
-if [ $(git clean -d -n | wc -l) != 0 ]; then
-    echo >&2 "Refusing to publish: the following files are currently untracked by git: "
-    git clean -d -n |sed 's/Would remove /\t/g'
-    die "Please commit them, stash them, add them to a .gitignore or remove them."
-fi
+# Normally insist that all files are checked in, but if the user specifies "unclean" then skip the checks
+if [ -z "$unclean" ]; then
+    # Refuse to package if there are untracked files (if .gitignore knows about them then it is OK to proceed)
+    if [ $(git clean -d -n | wc -l) != 0 ]; then
+        echo >&2 "Refusing to publish: the following files are currently untracked by git: "
+        git clean -d -n |sed 's/Would remove /\t/g'
+        die "Please commit them, stash them, add them to a .gitignore or remove them."
+    fi
 
-# Disallow unstaged changes in the working tree
-git diff --name-status --ignore-submodules --exit-code 2>&1 >/dev/null
-if [ $? != 0 ] ; then
-    echo >&2 "Refusing to publish: you have unstaged changes."
-    git diff --name-status --ignore-submodules >&2
-    die "Please commit them, stash them or remove them."
-fi
+    # Disallow unstaged changes in the working tree
+    git diff --name-status --ignore-submodules --exit-code 2>&1 >/dev/null
+    if [ $? != 0 ] ; then
+        echo >&2 "Refusing to publish: you have unstaged changes."
+        git diff --name-status --ignore-submodules >&2
+        die "Please commit them, stash them or remove them."
+    fi
 
-# Disallow uncommitted changes in the staging area
-git diff --staged --quiet --ignore-submodules --exit-code 2>&1 >/dev/null
-if [ $? != 0 ]; then
-    echo >&2 "Refusing to publish: your staging area contains uncommitted changes."
-    git diff --staged --name-status --ignore-submodules >&2
-    die "Please commit them or remove them from the staging area."
+    # Disallow uncommitted changes in the staging area
+    git diff --staged --quiet --ignore-submodules --exit-code 2>&1 >/dev/null
+    if [ $? != 0 ]; then
+        echo >&2 "Refusing to publish: your staging area contains uncommitted changes."
+        git diff --staged --name-status --ignore-submodules >&2
+        die "Please commit them or remove them from the staging area."
+    fi
 fi
 
 # If only doing a sandbox build then we don't need to check that all has been pushed to the central repo
@@ -160,24 +165,27 @@ verbose_echo "Version:            $version"
 verbose_echo "Release:            $release"
 verbose_echo ""
 
-if [ -n "$pretend" ]; then
-    echo "Pretend mode can go no further.  Aborting."
-fi
+# Normally insist that all files are checked in, but if the user specifies "unclean" then skip the checks
+if [ -z "$unclean" ]; then
+    if [ -n "$pretend" ]; then
+        echo "Pretend mode can go no further.  Aborting."
+    fi
 
-count=$(git clean -x -n -d |wc -l)
-if [ $count -gt 0 ]; then
-    echo ^^^^^^ WARNING ^^^^^^
-    echo If you proceed you
-    git clean -x -n -d
-    echo
-    echo "Proceed (y/N)"
-    read user_choice
-    if [ $user_choice = "Y" ] || [ $user_choice = "y" ]; then
-        echo "Cleaning out any uncommitted files..."
-        git reset --hard
-        git clean -x  -f -d
-    else
-        exit 1
+    count=$(git clean -x -n -d |wc -l)
+    if [ $count -gt 0 ]; then
+        echo ^^^^^^ WARNING ^^^^^^
+        echo If you proceed you
+        git clean -x -n -d
+        echo
+        echo "Proceed (y/N)"
+        read user_choice
+        if [ $user_choice = "Y" ] || [ $user_choice = "y" ]; then
+            echo "Cleaning out any uncommitted files..."
+            git reset --hard
+            git clean -x  -f -d
+        else
+            exit 1
+        fi
     fi
 fi
 
