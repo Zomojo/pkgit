@@ -232,31 +232,32 @@ cd $rpmhome/tmp >/dev/null
 
 # Copy over all the files for the given project  
 # Assume we need all files in the current directory and subdirectories  
-mkdir -p $rpmhome/tmp/${tag_name%-*}  || die "Could not create a specific project directory to build the tarball in"
+rpmbuild_tmp_project_dir=$rpmhome/tmp/${tag_name%-*}
+mkdir -p $rpmbuild_tmp_project_dir  || die "Could not create a specific project directory to build the tarball in"
 cd $current_specfile_path >/dev/null 
 repo_root=$($(dirname $0)/pkgit-find-repo-root)
-cd $rpmhome/tmp/${tag_name%-*} >/dev/null     
+cd $rpmbuild_tmp_project_dir >/dev/null     
 
 relative_specfile_path=${current_specfile_path#$repo_root}
-mkdir -p $rpmhome/tmp/${tag_name%-*}/$relative_specfile_path/  || die "Could not create $relative_specfile_path to build the tarball in"
+mkdir -p $rpmbuild_tmp_project_dir/$relative_specfile_path/  || die "Could not create $relative_specfile_path to build the tarball in"
 if [ -n $verbose ]; then rsync_options="-vv"; else rsync_options="--quiet";fi
-rsync -a $rsync_options "$current_specfile_path/" $rpmhome/tmp/${tag_name%-*}/$relative_specfile_path/
+rsync -a $rsync_options "$current_specfile_path/" $rpmbuild_tmp_project_dir/$relative_specfile_path/
 
 #copy in the modified spec file
-cp $rpmhome/SPECS/$spec $rpmhome/tmp/${tag_name%-*}/$relative_specfile_path/
+cp $rpmhome/SPECS/$spec $rpmbuild_tmp_project_dir/$relative_specfile_path/
 
 if [ -e $current_specfile_path/build.sh ] && [ $(grep -c cake $current_specfile_path/build.sh) -gt 0 ]; then    
     # This is the complex packaging case where needed files also exist in directories above and sideways from this project directory
     verbose_echo "Using cake to generate the dependencies for the tarball"
     
     # Since cake is available, use it to find the files required to package
-    touch $rpmhome/tmp/${tag_name%-*}/.git    # This is so cake can find a "git repo" even when there isn't really one
+    touch $rpmbuild_tmp_project_dir/.git    # This is so cake can find a "git repo" even when there isn't really one
 
     cd $current_specfile_path >/dev/null 
     ./build.sh --file-list --quiet | while read next_file; do
         newfilename=${next_file#$repo_root}
-        mkdir -p $(dirname $rpmhome/tmp/${tag_name%-*}/$newfilename)
-        cp $repo_root/$next_file $rpmhome/tmp/${tag_name%-*}/$newfilename
+        mkdir -p $(dirname $rpmbuild_tmp_project_dir/$newfilename)
+        cp $repo_root/$next_file $rpmbuild_tmp_project_dir/$newfilename
     done 
 fi
 
