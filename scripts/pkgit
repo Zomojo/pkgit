@@ -280,7 +280,10 @@ rm -rf $rpmhome/tmp
 # build RPM
 verbose_echo "Building RPM with rpmbuild"
 cd $rpmhome/SPECS  >/dev/null
-rpmbuild --clean --quiet -ba $(basename $spec)
+if [ -z $verbose ]; then
+    QUIET_FLAG=--quiet
+fi
+rpmbuild --clean $QUIET_FLAG -ba $(basename $spec)
 cd $rpmhome >/dev/null
 
 # move the newly built rpms to the project directory
