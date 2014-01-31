@@ -137,7 +137,7 @@ fi
 if [ -z "$sandbox" ]; then
     tag_cmd="$(dirname $0)/pkgit-tag-next $debug --message=\"$message\" $pretend $verbose ${spec%.spec} |tail -1"
     verbose_echo "Calling $tag_cmd"
-    tag_name=$(eval $tag_cmd)
+    tag_name=$(eval "$tag_cmd")
     if [ $? != 0 ]; then
         die "Tagging unsuccessful.  Can't proceed. :("
     fi
