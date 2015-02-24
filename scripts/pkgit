@@ -208,16 +208,17 @@ if [ $? = 1 ]; then
     die "At this point in time we will only support the source gzipped tarball with the .tgz extension"
 fi
 
-#top_level_build_dir=$(mktemp -d)
-top_level_build_dir="$HOME"
+rpmhome="$HOME"/rpmbuild
+if [ -s "$HOME"/.rpmmacros ]; then
+    rpmhome=$(grep topdir "$HOME"/.rpmmacros |cut -f2 -d' ')
+fi
 
 # Do not build in the root dir of the filesystem 
-if [ $top_level_build_dir = "/" ]; then
+if [ $rpmhome = "/" ]; then
     die "Refusing to build with when the top level build directory is /"
 fi
 
-verbose_echo "Building in $top_level_build_dir"
-rpmhome=$top_level_build_dir/rpmbuild 
+verbose_echo "Building in $rpmhome"
 mkdir -p $rpmhome  || die "Could not make the $rpmhome directory"
 cd $rpmhome  >/dev/null 
 rpmdev-setuptree  || die "Failed to create the expected rpmbuild expected directory structure"
