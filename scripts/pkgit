@@ -195,7 +195,7 @@ current_specfile_path=$(pwd)
 # Note that the character after the 's' in the sed command is defined by sed to be the command separator character. i.e., you don't have to use '/'
 relative_project_path=$(echo $current_specfile_path | sed "s^${current_repo_root}/*^^g")   
 repopath=$(git remote show origin |head -n 2 |tail -n1|sed 's/Fetch URL:/git clone/g')
-spec_repopath="$repopath yourreponame \&\& cd yourreponame/${relative_project_path} \&\& git checkout $tag_name"
+spec_repopath="$repopath yourreponame \&\& cd yourreponame\/${relative_project_path} \&\& git checkout $tag_name"
 
 
 #
