@@ -210,7 +210,7 @@ fi
 
 rpmhome="$HOME"/rpmbuild
 if [ -s "$HOME"/.rpmmacros ]; then
-    rpmhome=$(grep topdir "$HOME"/.rpmmacros |cut -f2 -d' ')
+    rpmhome=$(awk -F' ' '/^%_topdir/ {print $2}' "$HOME"/.rpmmacros)
 fi
 
 # Do not build in the root dir of the filesystem 
