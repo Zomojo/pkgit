@@ -250,7 +250,7 @@ cd $rpmbuild_tmp_project_dir >/dev/null
 relative_specfile_path=${current_specfile_path#$repo_root}
 mkdir -p $rpmbuild_tmp_project_dir/$relative_specfile_path/  || die "Could not create $relative_specfile_path to build the tarball in"
 if [ -n $verbose ]; then rsync_options="-vv"; else rsync_options="--quiet";fi
-rsync -a $rsync_options "$current_specfile_path/" $rpmbuild_tmp_project_dir/$relative_specfile_path/
+rsync -a --cvs-exclude $rsync_options "$current_specfile_path/" $rpmbuild_tmp_project_dir/$relative_specfile_path/
 
 #copy in the modified spec file
 cp $rpmhome/SPECS/$spec $rpmbuild_tmp_project_dir/$relative_specfile_path/
