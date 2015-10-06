@@ -1,14 +1,16 @@
 #!/usr/bin/env sh
 
-# Create a tarball of the given project directory with the given tagname
+# Create a tarball of the given project directory with the given tag name
 umask 0002
+
+script_dir=$(dirname $(readlink -f $0))
 
 usage()
 {
 cat <<EOF
-Usage: $(basename $0) [-h|--help] [--debug] [--version] [-v|--verbose] [-q|quiet] --project-dir=<fullpath to project> --tagname=<abc-1.0.3> 
+Usage: $(basename $0) [-h|--help] [--debug] [--version] [-v|--verbose] [-q|quiet] --project-dir=<fullpath to project> --tag-name=<abc-1.0.3> 
 
-Create a tarball of the given project directory with the given tagname, in some subdirectories of the current working directory
+Create a tarball of the given project directory with the given tag name, in some subdirectories of the current working directory
 
 Options:
   -h|--help  Print this message
@@ -17,10 +19,11 @@ Options:
   -v|--verbose  Print out extra information rather than showing nothing
   -q|--quiet    Turn verbose information off
   --project-dir Directory of the project to tarball. Must contain a specfile
-  --tagname     What is the tag to be applied.  Needed to create the correct tarball name and structure.
+  --tag-name     What is the tag to be applied.  Needed to create the correct tarball name and structure.
   
 Examples:
-$(basename $0) --project-dir=/data/work/geoff/zomojo/libs/machine_learning2 --tagname=ml2-3.0.12345-1
+$(basename $0) --project-dir=/data/work/geoff/zomojo/libs/machine_learning2 --tag-name=ml2-3.0.12345-1
+$(basename $0) --tag-name=myproj-7.99.12345-3
         
 EOF
    
@@ -43,11 +46,11 @@ verbose_echo()
 # Parse command line arguments. We accept the usual GNU short and long args and convert them to space separated arguments
 # Note that we use `"$@"' to let each command-line parameter expand to a separate word. The quotes around `$@' are essential!
 # We need TEMP as the `eval set --' would nuke the return value of getopt.
-TEMP=$(getopt -s sh -o hvq -l "help,debug,version,verbose,quiet,project-dir::,tagname:" -n "$(basename $0)" -- "$@")
+TEMP=$(getopt -s sh -o hvq -l "help,debug,version,verbose,quiet,project-dir::,tag-name:" -n "$(basename $0)" -- "$@")
 if [ $? != 0 ] ; then echo "Could not parse command line options..." >&2 ; usage ; fi
 eval set -- "$TEMP"  # Note the quotes around '$TEMP': they are essential!
 
-project_dir="."
+project_dir=$(readlink -f .)
 
 # Overide the defaults with anything from the command line
 while true; do
@@ -58,7 +61,7 @@ while true; do
         "-v"|"--verbose"  )  verbose="--verbose" ;;
         "-q"|"--quiet"    )  unset verbose ;;
         "--project-dir"   )  shift ; project_dir="$1" ;;
-        "--tagname"       )  shift ; tagname="$1" ;;
+        "--tag-name"       )  shift ; tag_name="$1" ;;
         "--"              )  shift ; break ;;
         *                 )  die "getopt error!" ; exit 1 ;;
     esac
@@ -72,7 +75,6 @@ rpmhome=$(pwd)
 release=${tag_name##*-}                # Release is everything after the last minus sign.  Mostly this will be 1
 version=${tag_name#${spec%.spec}-*}    # Remove the spec (package) name from the start; leaving something like 3.0.8-1
 version=${version%-*}                  # Remove the release number from the end; leaving something like 3.0.8
-
 
 # copy the almost complete spec file from the project dir to the rpmbuild dir and fill in the missing bits
 verbose_echo "Copying spec file and inserting correct version numbers and package source into spec file"
@@ -89,15 +91,13 @@ verbose_echo "Inserting %projectdir = $relative_project_path"
 
 # rpmbuild expects to find the files in a tarball with the package-version as the top level directory.
 mkdir -p $rpmhome/tmp  || die "Could not create a temp directory to build the tarball in"
-cd $rpmhome/tmp >/dev/null 
 
 # Copy over all the files for the given project  
 # Assume we need all files in the current directory and subdirectories  
 rpmbuild_tmp_project_dir=$rpmhome/tmp/${tag_name%-*}
 mkdir -p $rpmbuild_tmp_project_dir  || die "Could not create a specific project directory to build the tarball in"
 cd $project_dir >/dev/null 
-repo_root=$($(dirname $0)/pkgit-find-repo-root)
-cd $rpmbuild_tmp_project_dir >/dev/null     
+repo_root=$($script_dir/pkgit-find-repo-root)
 
 relative_specfile_path=${project_dir#$repo_root}
 mkdir -p $rpmbuild_tmp_project_dir/$relative_specfile_path/  || die "Could not create $relative_specfile_path to build the tarball in"
@@ -129,5 +129,5 @@ tar -cvzf $rpmhome/SOURCES/${tag_name%-*}.tgz . >/dev/null 2>&1
 
 
 cd $rpmhome  >/dev/null 
-#rm -rf $rpmhome/tmp
+rm -rf $rpmhome/tmp
 
