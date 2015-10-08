@@ -20,7 +20,7 @@ test_packaging()
 {
     git push >/dev/null 2>&1
     git clean -x -d -f >/dev/null
-    pkgit 
+    pkgit --quiet || die "pkgit failed"
     if [ $(ls *rpm |wc -l) != 3 ]; then
         die "Failure creating rpms for project $1.  Should have been an rpm, debug rpm and a source rpm created."
     fi
@@ -179,5 +179,5 @@ fi
 
 
 # Cleanup
-#rm -rf $top_working_dir >/dev/null 2>&1
+rm -rf $top_working_dir >/dev/null 2>&1
 PATH="$ORIGPATH"

@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 
 #
-# Try to find the .git directory starting from the current directory and working upwards
+# Try to find the .git directory starting from the current directory (alternatively $1 if given) and working upwards
 # Continue working upwards until either the .git directory is found or the "/" directory is found
 # Echo out the directory when it is found.  
 # Exit code non-zero on error
@@ -9,7 +9,7 @@
 set -e
 
 if [ "$1" = "--help" ] || [ "$1" = "-h" ] || [ "$1" = "-?" ]; then
-    echo "Usage: $(basename $0) [-?|-h|--help] [--version]"
+    echo "Usage: $(basename $0) [-?|-h|--help] [--version] [starting_directory]"
     echo "Find the path of the root of the git repository we are currently inside."
     exit
 fi
@@ -19,6 +19,10 @@ if [ "$1" = "--version" ]; then
     exit
 fi
 
+reset_path=$(pwd)
+if [ -n "$1" ]; then
+    cd "$1"
+fi
 
 #
 # Ensure that the $1 of this function is not the root directory of the file system
@@ -27,12 +31,12 @@ fi
 ensure_not_root_directory()
 {
     current_dir=$(pwd)
-    cd $1 >/dev/null 2>&1 
+    cd "$1" >/dev/null 2>&1 
     if [ $? != 0 ] || [ $(pwd) = / ]; then
-        cd $current_dir >/dev/null 2>&1 
+        cd "$current_dir" >/dev/null 2>&1 
         exit 1   # Note the early exit from this script if we have hit the root directory of the file system
     fi
-    cd $current_dir >/dev/null 2>&1 
+    cd "$current_dir" >/dev/null 2>&1 
 }
 
 #
@@ -41,19 +45,23 @@ ensure_not_root_directory()
 fold_dots_in_path()
 {
     current_dir=$(pwd)
-    cd $1 >/dev/null 2>&1
+    cd "$1" >/dev/null 2>&1
     pwd
-    cd $current_dir >/dev/null 2>&1 
+    cd "$current_dir" >/dev/null 2>&1 
 }
 
 test_dir=$(pwd)
-ensure_not_root_directory $test_dir
+ensure_not_root_directory "$test_dir"
 
 while [ ! -e $test_dir/.git ]
 do
     test_dir=$test_dir/..
-    ensure_not_root_directory $test_dir
+    ensure_not_root_directory "$test_dir"
 done
 
-fold_dots_in_path $test_dir
+result=$(fold_dots_in_path "$test_dir")
+cd "$reset_path" >/dev/null 2>&1 
+echo "$result"
+
+
 
