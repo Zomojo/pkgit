@@ -6,7 +6,7 @@
 #   b) 
 # 2) If no exact tag then make up a version based on the greatest version found in the git repo
 # 3) If not in a git repo then look for a spec file and extract a version number from there
-# 4) Give up and guess 888.888.888-888
+# 4) Give up and guess 0.0.0-0
 
 
 usage()
@@ -88,6 +88,6 @@ elif [ -s *.spec ]; then
     fi
 fi
 
-echo $project_name-888.888.888-888
+echo $project_name-0.0.0-0
 
 

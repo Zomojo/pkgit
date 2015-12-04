@@ -14,7 +14,7 @@ Options:
   -h|--help  Print this message
   --debug  Executes "set -x" to put the shell into debug mode
   --version  Print the version number and exit
-  --sandbox  Don't tag the central repo, don't worry if we are off the master branch, don't worry if we are ahead of the central repo.  Use 888.888.888-888 as the version-release number
+  --sandbox  Don't tag the central repo, don't worry if we are off the master branch, don't worry if we are ahead of the central repo.  Use 0.0.0-0 as the version-release number
   --unclean  Package up without checking that files are checked in.  This implies --sandbox. Note that --sandbox still wants you to check your work in to the local repo and this lets you work around that restriction.
   -v|--verbose  Print out extra information rather than showing nothing
   -q|--quiet    Turn verbose information off
@@ -143,7 +143,7 @@ if [ -z "$sandbox" ]; then
         die "Tagging unsuccessful.  Can't proceed. :("
     fi
 else
-    tag_name=${spec%.spec}-888.888.888-888
+    tag_name=${spec%.spec}-0.0.0-0
     verbose_echo "Sandbox version being created.  Assigned version = $tag_name"
 fi    
 
