@@ -82,7 +82,9 @@ if [ ! -n "$relative_project_path" ]; then
     relative_project_path=.
 fi
 
+cd "$project_dir" 2> /dev/null
 repopath=$(git remote show origin |head -n 2 |tail -n1|sed 's/Fetch URL:/git clone/g')
+cd "$rpmhome" 2> /dev/null
 spec_repopath="$repopath git clone yourreponame \&\& cd yourreponame\/${relative_project_path} \&\& git checkout $tag_name"
 
 # Extract the version, release from the tag_name
