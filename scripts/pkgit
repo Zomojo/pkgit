@@ -204,10 +204,7 @@ if [ $? = 1 ]; then
     die "At this point in time we will only support the source gzipped tarball with the .tgz extension"
 fi
 
-rpmhome="$HOME"/rpmbuild
-if [ -s "$HOME"/.rpmmacros ]; then
-    rpmhome=$(awk -F' ' '/^%_topdir/ {print $2}' "$HOME"/.rpmmacros)
-fi
+rpmhome=$(rpm --eval %_topdir)
 
 # Do not build in the root dir of the filesystem 
 if [ $rpmhome = "/" ]; then
