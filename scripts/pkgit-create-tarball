@@ -131,7 +131,7 @@ if [ -e $project_dir/build.sh ] && [ $(grep -c cake $project_dir/build.sh) -gt 0
     touch $rpmbuild_tmp_project_dir/.git    # This is so cake can find a "git repo" even when there isn't really one
 
     cd $project_dir >/dev/null 
-    ./build.sh --file-list --quiet | while read next_file; do
+    ./build.sh --file-list --quiet --shorten | while read next_file; do
         newfilename=${next_file#$repo_root}
         mkdir -p $(dirname $rpmbuild_tmp_project_dir/$newfilename)
         cp $repo_root/$next_file $rpmbuild_tmp_project_dir/$newfilename
