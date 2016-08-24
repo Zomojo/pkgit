@@ -173,7 +173,7 @@ verbose_echo ""
 # Normally insist that all files are checked in, but if the user specifies "unclean" then skip the checks
 if [ -z "$unclean" ]; then
     if [ -n "$pretend" ]; then
-        echo "Pretend mode can go no further.  Aborting."
+        die "Pretend mode can go no further.  Aborting."
     fi
 
     count=$(git clean -x -n -d |wc -l)
