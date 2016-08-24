@@ -16,7 +16,8 @@ Options:
   --version  Print the version number and exit
   --sandbox  Don't tag the central repo, don't worry if we are off the master branch, don't worry if we are ahead of the central repo.  Use 0.0.0-0 as the version-release number
   --unclean  Package up without checking that files are checked in.  This implies --sandbox. Note that --sandbox still wants you to check your work in to the local repo and this lets you work around that restriction.
-  -v|--verbose  Print out extra information rather than showing nothing
+  -s|--spec     Specify a spec file to build.  If no spec file is specified pkgit defaults to using the alphabetically first spec file.
+  -v|--verbose  Print out extra information rather than showing nothing  
   -q|--quiet    Turn verbose information off
   -p|--pretend  Do all the work but don't actually execute the git tag command. Works best in conjunction with --verbose
   -m|--message  The message to be put into the annotated tag.  Defaults to "Tagging in preparation for packaging"
