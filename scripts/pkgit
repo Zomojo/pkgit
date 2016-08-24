@@ -45,12 +45,15 @@ verbose_echo()
 # Parse command line arguments. We accept the usual GNU short and long args and convert them to space separated arguments
 # Note that we use `"$@"' to let each command-line parameter expand to a separate word. The quotes around `$@' are essential!
 # We need TEMP as the `eval set --' would nuke the return value of getopt.
-TEMP=$(getopt -s sh -o hvqpm: -l "help,debug,version,verbose,quiet,pretend,message:,sandbox,unclean" -n "$(basename $0)" -- "$@")
+TEMP=$(getopt -s sh -o hvqpms: -l "help,debug,version,verbose,quiet,pretend,message:,spec,sandbox,unclean" -n "$(basename $0)" -- "$@")
 if [ $? != 0 ] ; then echo "Could not parse command line options..." >&2 ; usage ; fi
 eval set -- "$TEMP"  # Note the quotes around '$TEMP': they are essential!
 
 message="Tagging in preparation for packaging"
 verbose="--verbose"   # Be verbose by default.  The users seem to prefer that rather than complete silence
+
+# By default, use the first spec file found.  Command line overrideable.
+spec=$(ls -1 *.spec 2> /dev/null)
 
 # Overide the defaults with anything from the command line
 while true; do
@@ -62,6 +65,7 @@ while true; do
         "-q"|"--quiet"    )  unset verbose ;;
         "-p"|"--pretend"  )  pretend="--pretend" ;;
         "-m"|"--message"  )  shift; message="$1" ;;
+        "-s"|"--spec"     )  shift; spec="$1" ;;
         "--sandbox"       )  sandbox="--sandbox" ;;
         "--unclean"       )  unclean="--unclean"; sandbox="--sandbox" ;;
         "--"              )  shift ; break ;;
@@ -70,12 +74,12 @@ while true; do
     shift
 done
 
-# Check that one and only one spec file exists
-spec=$(ls -1 *.spec 2> /dev/null)
+
+# Check that we have a spec file to rpmbuild
 if [ "$spec" = "" ]; then
-    die "$(basename $0) will only work if there is exactly one spec file in the current directory.  An example spec file can be created with pkgit-create-skeleton-spec-file."
+    die "$(basename $0) will only work if it can find a spec file in the current directory or a spec file was specified with --spec <specfile>.  An example spec file can be created with pkgit-create-skeleton-spec-file."
 fi
-verbose_echo "Found spec file = $spec"
+verbose_echo "Using spec file = $spec"
 
 # Check we are in a git repo
 git status >/dev/null 2>&1
