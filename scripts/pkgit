@@ -45,7 +45,7 @@ verbose_echo()
 # Parse command line arguments. We accept the usual GNU short and long args and convert them to space separated arguments
 # Note that we use `"$@"' to let each command-line parameter expand to a separate word. The quotes around `$@' are essential!
 # We need TEMP as the `eval set --' would nuke the return value of getopt.
-TEMP=$(getopt -s sh -o hvqpms: -l "help,debug,version,verbose,quiet,pretend,message:,spec,sandbox,unclean" -n "$(basename $0)" -- "$@")
+TEMP=$(getopt -s sh -o hvqps:m: -l "help,debug,version,verbose,quiet,pretend,spec:,message:,sandbox,unclean" -n "$(basename $0)" -- "$@")
 if [ $? != 0 ] ; then echo "Could not parse command line options..." >&2 ; usage ; fi
 eval set -- "$TEMP"  # Note the quotes around '$TEMP': they are essential!
 
@@ -53,7 +53,7 @@ message="Tagging in preparation for packaging"
 verbose="--verbose"   # Be verbose by default.  The users seem to prefer that rather than complete silence
 
 # By default, use the first spec file found.  Command line overrideable.
-spec=$(ls -1 *.spec 2> /dev/null)
+spec=$(ls -1 *.spec |head -1 2> /dev/null)
 
 # Overide the defaults with anything from the command line
 while true; do
