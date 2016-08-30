@@ -89,14 +89,8 @@ package="$1"
 # Make sure the tags are up to date with the central repo
 git fetch --tags  >/dev/null 2>&1
 
-# Ensure we are on the master branch or that there is already an exact tag for the sha1
-current_branch=$(git branch |grep '*'|cut -d' ' -f2)
+# Get an exact tag if possible
 exact_tag=$(git describe --tags --match='*-*.*.*-*' --exact 2>/dev/null)
-if [ $current_branch != "master" ]; then    
-    if [ -z "$exact_tag" ]; then
-        die "Cannot automatically create a new version number unless repo is on the master branch."      
-    fi
-fi
 
 # From here there are a few scenarios.
 # 1) An exact tag is found. 

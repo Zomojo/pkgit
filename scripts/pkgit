@@ -14,7 +14,7 @@ Options:
   -h|--help  Print this message
   --debug  Executes "set -x" to put the shell into debug mode
   --version  Print the version number and exit
-  --sandbox  Don't tag the central repo, don't worry if we are off the master branch, don't worry if we are ahead of the central repo.  Use 0.0.0-0 as the version-release number
+  --sandbox  Don't tag the central repo, don't worry if we are ahead of the central repo.  Use 0.0.0-0 as the version-release number
   --unclean  Package up without checking that files are checked in.  This implies --sandbox. Note that --sandbox still wants you to check your work in to the local repo and this lets you work around that restriction.
   -s|--spec     Specify a spec file to build.  If no spec file is specified pkgit defaults to using the alphabetically first spec file.
   -v|--verbose  Print out extra information rather than showing nothing  
@@ -86,18 +86,6 @@ verbose_echo "Using spec file = $spec"
 git status >/dev/null 2>&1
 if [ $? != 0 ]; then
     die "Cannot run this script outside of a git repository"
-fi
-
-# If only doing a sandbox build then we don't need to check that we are on the master branch 
-if [ -z "$sandbox" ]; then
-    # Refuse to package if we aren't on branch master and there isn't an exact tag describing the sha1.  May remove this limitation in the future
-    current_branch=$(git branch |grep '*'|cut -d' ' -f2-)
-    if [ "$current_branch" != "master" ]; then
-        exact_tag=$(git describe --tags --match='*-*.*.*-*' --exact 2>/dev/null)
-        if [ $? != 0 ]; then
-            die "Refusing to publish: not on branch master and no exact tag describing where we are.  Try 'git checkout master' before using pkgit again"
-        fi
-    fi
 fi
 
 # Normally insist that all files are checked in, but if the user specifies "unclean" then skip the checks
