@@ -209,7 +209,7 @@ mkdir -p $rpmhome  || die "Could not make the $rpmhome directory"
 cd $rpmhome  >/dev/null 
 rpmdev-setuptree  || die "Failed to create the expected rpmbuild expected directory structure"
 
-pkgit-create-tarball $debug $verbose --project-dir="$current_specfile_path" --tag-name="$tag_name" || die "Failed creating tarball"
+pkgit-create-tarball $debug $verbose --project-dir="$current_specfile_path" --tag-name="$tag_name" --spec="$spec" || die "Failed creating tarball"
 
 # build RPM
 verbose_echo "Building RPM with rpmbuild"

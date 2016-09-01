@@ -20,6 +20,7 @@ Options:
   -q|--quiet    Turn verbose information off
   --project-dir Directory of the project to tarball. Must contain a specfile
   --tag-name     What is the tag to be applied.  Needed to create the correct tarball name and structure.
+  -s|--spec     Specify a spec file to build.  If no spec file is specified pkgit defaults to using the alphabetically first spec file.
   
 Examples:
 $(basename $0) --project-dir=/data/work/geoff/zomojo/libs/machine_learning2 --tag-name=ml2-3.0.12345-1
@@ -46,7 +47,7 @@ verbose_echo()
 # Parse command line arguments. We accept the usual GNU short and long args and convert them to space separated arguments
 # Note that we use `"$@"' to let each command-line parameter expand to a separate word. The quotes around `$@' are essential!
 # We need TEMP as the `eval set --' would nuke the return value of getopt.
-TEMP=$(getopt -s sh -o hvq -l "help,debug,version,verbose,quiet,project-dir::,tag-name:" -n "$(basename $0)" -- "$@")
+TEMP=$(getopt -s sh -o hvqs: -l "help,debug,version,verbose,quiet,spec:,project-dir::,tag-name:" -n "$(basename $0)" -- "$@")
 if [ $? != 0 ] ; then echo "Could not parse command line options..." >&2 ; usage ; fi
 eval set -- "$TEMP"  # Note the quotes around '$TEMP': they are essential!
 
@@ -62,14 +63,21 @@ while true; do
         "-q"|"--quiet"    )  unset verbose ;;
         "--project-dir"   )  shift ; project_dir="$1" ;;
         "--tag-name"      )  shift ; tag_name="$1" ;;
+        "-s"|"--spec"     )  shift; spec="$1" ;;
         "--"              )  shift ; break ;;
         *                 )  die "getopt error!" ; exit 1 ;;
     esac
     shift
 done
 
-# Figure out some information about the repository and project spec file for later use
-spec=$(basename ${project_dir}/*.spec 2> /dev/null)
+
+# By default, use the first spec file found.  Command line overrideable.
+if [[ -z $spec ]]; then
+    verbose_echo "Using first spec file in $(basename ${project_dir})"
+    spec=$(ls -1 $(basename ${project_dir})/*.spec |head -1 2> /dev/null)
+fi
+
+# Figure out some information about the repository for later use
 rpmhome=$(pwd)
 current_repo_root=$($script_dir/pkgit-find-repo-root $project_dir)
 if [ ! -n "$current_repo_root" ]; then
