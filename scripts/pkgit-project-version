@@ -37,11 +37,14 @@ if [ "$1" = "--version" ]; then
     exit
 fi
 
-
-# Check what project this is by finding either a spec file or using the directory name
+# Default project name is the directory name
 project_name=$(basename $(pwd))
-spec=$(ls *spec 2>/dev/null |head -1)
-if [ -n "$spec" ]; then
+
+# However if there is exactly one spec file in the directory
+# allow the name of that to be used as the project name
+speccount=$(ls *spec |wc -l)
+if [ $speccount -eq 1 ]; then
+    spec=$(ls *spec 2>/dev/null |head -1)
     project_name=${spec%.spec}
 fi
 
@@ -76,13 +79,14 @@ if [ $? = 0 ]; then
         echo ${project_name}-$version-${sha1}${num_files_changed_extension}
     fi
     exit
-elif [ -s *.spec ]; then
+elif [ $speccount -gt 0 ]; then
     # So we are not in a git repository
-    # Try grabbing a defined version from a spec file
-    version=$(grep Version *.spec | sed 's^Version[ ]*:[ ]*^^' |sed 's![^\.0-9]!!g' | tr -d '[:space:]' )|| exit 1
+    # Try grabbing a defined version from the alphabetically first spec file
+    spec=$(ls -1 *spec |head -1)
+    version=$(grep Version $spec | sed 's^Version[ ]*:[ ]*^^' |sed 's![^\.0-9]!!g' | tr -d '[:space:]' )|| exit 1
     # check that version actually is a version number, not a placeholder like %version
     if [ -n $version ]; then
-        release=$(grep Release *.spec| sed 's^Release[ ]*:[ ]*^^'|  sed 's@\([0-9.]\+\)[%.]*.*@\1@g' | tr -d '[:space:]' )
+        release=$(grep Release $spec| sed 's^Release[ ]*:[ ]*^^'|  sed 's@\([0-9.]\+\)[%.]*.*@\1@g' | tr -d '[:space:]' )
         echo $project_name-$version-$release
         exit
     fi
