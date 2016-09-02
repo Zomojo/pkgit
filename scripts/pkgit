@@ -1,5 +1,29 @@
 #!/usr/bin/env sh
 
+#
+# If the user sends a ctrl-c (SIGINT) to this script then we need to SIGINT all the background process we started
+# 
+trap "echo \$(date --rfc-3339=\"seconds\")  \"SIGINT trapped. Stopping background processes\"; stop_background_jobs; exit 1" INT
+
+# Figure out what jobs we have set off and send a SIGTERM to them
+stop_background_jobs()
+{
+    # Send a SIGINT to all the jobs in the current process group
+    pkill -INT -P ${$}
+    sleep 1
+    
+    # If that didn't stop the jobs then send a SIGTERM
+    if [ $(jobs -p | wc -l) -gt 0 ]; then
+        kill -s TERM 0 >/dev/null 2>&1
+        sleep 1
+
+        # If that didn't stop the jobs then send a SIGKILL
+        if [ $(jobs -p | wc -l) -gt 0 ]; then
+            kill -s KILL 0 >/dev/null 2>&1
+        fi
+    fi
+}
+
 # Publish a package using the spec file in the current directory
 umask 0002
 
