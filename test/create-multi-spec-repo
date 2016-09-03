@@ -1,0 +1,88 @@
+#!/usr/bin/env sh
+set -euo pipefail
+
+top_working_dir=$1
+
+current_working_directory=$(pwd)
+cd $top_working_dir
+
+
+create_txt()
+{
+# $1 will be '1' or '2'
+cat >f${1}.txt <<EOF
+"$1"
+blah blah
+EOF
+}
+
+
+create_spec()
+{
+# $1 will be '1' or '2'
+cat >s${1}.spec << EOF
+Summary: s${1} - A very simple package
+Name: s${1}
+Version: %{version_base}
+Release: %{version_release}%{?org_tag}%{?dist}
+Source: %{name}-%{version}.tgz
+License: Proprietary, Redistribution not allowed
+Group: Applications/Other
+Buildroot: %_tmppath/%{name}-%{version}
+%define debug_package %{nil}
+
+%description
+testprj - What does this project actually do?
+
+
+%prep
+%setup
+
+%build
+cd %projectdir
+
+%install
+cd %projectdir
+mkdir -p %{buildroot}%{_bindir}
+cp f${1}.txt %{buildroot}%{_bindir}/
+
+%clean
+test "%{buildroot}" != "/" && rm -rf %{buildroot}
+
+%files
+%{_bindir}/f${1}.txt
+EOF
+}
+
+create_gitignore()
+{
+cat >.gitignore << EOF
+*.rpm
+EOF
+}
+
+
+# Make the "central" repo
+mkdir -p multispec
+cd multispec
+git --bare init --shared
+
+# clone the central repo to a local repo and add some files
+cd $top_working_dir
+git clone multispec multispec.local 
+cd multispec.local
+
+create_txt 1
+create_txt 2
+create_spec 1
+create_spec 2
+create_gitignore
+
+git add .
+git commit -a -m "Initial commit" 
+git push origin master   
+git tag -a manual-7.8.9-1 -m "Initial manual tag"
+git push --tags
+
+cd "$current_working_directory"
+

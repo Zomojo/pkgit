@@ -18,13 +18,19 @@ die()
 
 test_packaging()
 {
+    # $1 is the project
+    # $2 is the expected number of rpms.  default to 3 rpms
+    expected_rpms=${2:-3}
+
+    # $3 is the packaging command.  default to pkgit --quiet
+    pkgcmd=${3:-"pkgit --quiet"}
+
     git push >/dev/null 2>&1
     git clean -x -d -f >/dev/null
-    pkgit --quiet || die "pkgit failed"
-    if [ $(ls *rpm |wc -l) != 3 ]; then
-        die "Failure creating rpms for project $1.  Should have been an rpm, debug rpm and a source rpm created."
+    eval "$pkgcmd" || die "pkgit failed"
+    if [ $(ls *rpm |wc -l) != $expected_rpms ]; then
+        die "Failure creating rpms for project $1.  Should have been an rpm, source rpm (and possibly a debug rpm) created."
     fi
-
 }
 
 create_branch_from_previous_tag()
@@ -177,6 +183,12 @@ if [ $(pkgit-greatest-version) != 1.0.6-1 ]; then
     die "Greatest version detected is $(pkgit-greatest-version) but expected 1.0.6-1"
 fi
 
+# Test the multiple spec files in a single repo
+create-multi-spec-repo $top_working_dir
+cd ${top_working_dir}/multispec.local
+test_packaging "s1" 2 
+tree
+test_packaging "s2" 2 "pkgit --quiet -s s2.spec"
 
 # Cleanup
 rm -rf $top_working_dir >/dev/null 2>&1
