@@ -42,7 +42,7 @@ project_name=$(basename $(pwd))
 
 # However if there is exactly one spec file in the directory
 # allow the name of that to be used as the project name
-speccount=$(ls *spec |wc -l)
+speccount=$(ls *spec 2>/dev/null |wc -l)
 if [ $speccount -eq 1 ]; then
     spec=$(ls *spec 2>/dev/null |head -1)
     project_name=${spec%.spec}
