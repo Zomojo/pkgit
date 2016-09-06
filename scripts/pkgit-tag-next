@@ -119,10 +119,14 @@ if [ "$package" = "$exact_tag_package" ]; then
 else
     # This will complete Case 1b and case 2
     final_tag=$package-$major.$minor.$revision-$release
-    verbose_echo "Tagging with tag = $final_tag and message = $message"
-    if [ -z "$pretend" ]; then
-        git tag -a "$final_tag" -m "$message"
-        git push origin "$final_tag" >/dev/null 2>&1
+
+    # Check first that the tag doesn't already exist
+    if ! git rev-parse -q --verify "refs/tags/$final_tag" >/dev/null; then
+        verbose_echo "Tagging with tag = $final_tag and message = $message"
+        if [ -z "$pretend" ]; then
+            git tag -a "$final_tag" -m "$message"
+            git push origin "$final_tag" >/dev/null 2>&1
+        fi
     fi
 fi
 
