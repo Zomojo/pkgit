@@ -25,7 +25,7 @@ test_packaging()
     # $3 is the packaging command.  default to pkgit --quiet
     pkgcmd=${3:-"pkgit --quiet"}
 
-    git push >/dev/null 2>&1
+    git push -q >/dev/null 2>&1
     git clean -x -d -f >/dev/null
     eval "$pkgcmd" || die "pkgit failed"
     if [ $(ls *rpm |wc -l) != $expected_rpms ]; then
@@ -46,7 +46,7 @@ create_branch_from_previous_tag()
     if [ $? != 0 ]; then
         git checkout $previous_tag  >/dev/null 2>&1                # Checkout the code at the given tag
         git checkout -b $branch_name >/dev/null 2>&1              # Make a local branch using just the version number
-        git push origin $branch_name >/dev/null 2>&1              # Push the branch to the central repository
+        git push -q origin $branch_name >/dev/null 2>&1              # Push the branch to the central repository
     else
         git checkout $branch_name >/dev/null 2>&1
     fi
@@ -65,7 +65,7 @@ test-pkgit-find-repo-root $top_working_dir $remote_repo $local_repo_1 $local_rep
 # Test that pkgit-tag-next can ignore tags like "pre-delete-obsolete-project-2" or "might-need-to-rollback-here-oneday"
 cd $local_repo_2
 git tag -a -m "First time project two appears" first-time-project-2-appears >/dev/null 2>&1 
-git push --tags >/dev/null 2>&1 
+git push -q --tags >/dev/null 2>&1 
 
 cd $local_repo_1
 git fetch --tags >/dev/null 2>&1 
@@ -78,7 +78,7 @@ cd $local_repo_1/projects/one
 pkgit-create-skeleton-spec-file
 git add one.spec
 git commit -m "project one: Add spec file" >/dev/null
-git push  >/dev/null  2>&1
+git push -q  >/dev/null  2>&1
 
 # Test that the greatest version is 1.0.1-1
 if [ $(pkgit-greatest-version) != 1.0.1-1 ]; then
@@ -140,17 +140,17 @@ next_package_name=$(create_branch_from_previous_tag one-1.0.2-1)
 cd $local_repo_1/projects/one
 sed -i "s|world|everyone|g" english.c
 git commit -a -m "project one: Change to everyone."  >/dev/null
-git push >/dev/null 2>&1                                                                      # Put the changes onto the central repository
+git push -q >/dev/null 2>&1                                                                      # Put the changes onto the central repository
 git tag -a "$next_package_name" -m "Packaging project one with the everyone change"    # Have to manually tag on the branches
-git push origin $next_package_name >/dev/null 2>&1
+git push -q origin $next_package_name >/dev/null 2>&1
 test_packaging one
 
 next_package_name=$(create_branch_from_previous_tag $next_package_name)
 sed -i "s|everyone|everyone+dog|g" english.c
 git commit -a -m "project one: Include dogs too."  >/dev/null
-git push >/dev/null 2>&1                                                                      # Put the changes onto the central repository
+git push -q >/dev/null 2>&1                                                                      # Put the changes onto the central repository
 git tag -a "$next_package_name" -m "Packaging project one with the everyone change"    # Have to manually tag on the branches
-git push origin $next_package_name >/dev/null 2>&1
+git push -q origin $next_package_name >/dev/null 2>&1
 test_packaging one
 
 # Back to master and check that packaging works
@@ -172,7 +172,7 @@ pkgit-create-skeleton-spec-file
 sed -i "s|%projectdir|projects/three|g" three.spec
 git add three.spec
 git commit -m "project three: Add spec file" >/dev/null
-git push  >/dev/null  2>&1
+git push -q  >/dev/null  2>&1
 
 # Actually put some build/install stuff into one.spec and then build the rpm
 sed -i "s|%install|./build.sh\n\n%install|g" three.spec

@@ -59,9 +59,9 @@ chmod +x build.sh
 cd $local_repo_1 
 git add .
 git commit -a -m "Initial commit" 
-git push origin master   
+git push -q origin master   
 git tag -a manual-1.0.0-1 -m "Initial manual tag"
-git push origin manual-1.0.0-1  
+git push -q origin manual-1.0.0-1  
 
 
 # Clone the second local repo and add some files

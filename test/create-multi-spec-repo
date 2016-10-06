@@ -80,9 +80,9 @@ create_gitignore
 
 git add .
 git commit -a -m "Initial commit" 
-git push origin master   
+git push -q origin master   
 git tag -a manual-7.8.9-1 -m "Initial manual tag"
-git push --tags
+git push -q --tags
 
 cd "$current_working_directory"
 

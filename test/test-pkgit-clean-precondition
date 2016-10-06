@@ -53,7 +53,7 @@ git commit -m "project one: Add the correct interpreter to the build script" >/d
 # Test refusal to package if the local git repo is ahead of the central repo
 pkgit 2>/dev/null
 expected_failure_or_die "Not allowed to package when the local repo is ahead of the central repo"
-git push  >/dev/null 2>&1
+git push -q  >/dev/null 2>&1
 
 # Cleanup
 cd $top_working_dir >/dev/null
