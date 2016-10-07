@@ -142,12 +142,9 @@ fi
 if [ -z "$sandbox" ]; then
     # Refuse to package if the local git repo is ahead of the central repo
     # Note that the other way around is OK.  That is, the central repo may be in advance of the local repo.
-    # Make the assumption that if branch is not master (so on a detached HEAD or some other branch) then the user actually knows what they are doing
-    if [ "$current_branch" = "master" ]; then
-        count_ahead=$(git log origin/master..HEAD --format=oneline |wc -l)
-        if [ $count_ahead -gt 0 ]; then
-            die "Refusing to publish: Your branch is ahead of 'origin/master' by $count_ahead commit(s). Please push these commits to the central repo before attempting to package." 
-        fi
+    branch_count=$(git branch -r --contains HEAD | grep -c origin)
+    if [ $? != 0 ]; then
+        die "Local repo is ahead of central repo.  Refusing to publish.  Either git push the commits to the origin repo or use --sandbox to bypass this check."
     fi
 fi
 

@@ -44,9 +44,9 @@ create_branch_from_previous_tag()
     git branch -a |grep $branch_name >/dev/null
     
     if [ $? != 0 ]; then
-        git checkout $previous_tag  >/dev/null 2>&1                # Checkout the code at the given tag
-        git checkout -b $branch_name >/dev/null 2>&1              # Make a local branch using just the version number
-        git push -q origin $branch_name >/dev/null 2>&1              # Push the branch to the central repository
+        git checkout $previous_tag  >/dev/null 2>&1         # Checkout the code at the given tag
+        git checkout -b $branch_name >/dev/null 2>&1        # Make a local branch using just the version number
+        git push -u -q origin $branch_name >/dev/null 2>&1  # Push the branch to the central repository. -u is to make the local track the remote.
     else
         git checkout $branch_name >/dev/null 2>&1
     fi
