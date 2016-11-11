@@ -72,7 +72,7 @@ done
 
 
 # By default, use the first spec file found.  Command line overrideable.
-if [[ -z $spec ]]; then
+if [ -z $spec ]; then
     verbose_echo "Using first spec file in $(basename ${project_dir})"
     spec=$(ls -1 $(basename ${project_dir})/*.spec |head -1 2> /dev/null)
 fi
@@ -140,7 +140,7 @@ if [ -e $project_dir/build.sh ] && [ $(grep -c cake $project_dir/build.sh) -gt 0
 
     cd $project_dir >/dev/null 
     flistcmd="./build.sh --file-list --quiet"
-    if [ $(./build.sh --version |cut -f1 -d'.') >= 4 ]; then
+    if [ $(./build.sh --version |cut -f1 -d'.') -gt 3 ]; then
         flistcmd+=" --shorten"
     fi
     eval $flistcmd | while read next_file; do
