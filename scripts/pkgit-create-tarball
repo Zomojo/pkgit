@@ -140,7 +140,7 @@ if [ -e $project_dir/build.sh ] && [ $(grep -c cake $project_dir/build.sh) -gt 0
 
     cd $project_dir >/dev/null 
     flistcmd="./build.sh --file-list --quiet"
-    if [ $(./build.sh --version |cut -f1 -d'.') -gt 3 ]; then
+    if [ $(./build.sh --version 2>&1 |head -1 |cut -f1 -d'.') -gt 3 ]; then
         flistcmd+=" --shorten"
     fi
     eval $flistcmd | while read next_file; do
