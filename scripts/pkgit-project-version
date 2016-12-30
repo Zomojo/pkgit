@@ -82,10 +82,11 @@ if [ $? = 0 ]; then
 elif [ $speccount -gt 0 ]; then
     # So we are not in a git repository
     # Loop over all the spec files present, hoping that one of them will have a version number
-    find . -name "*\.spec" -type f -print0 | while read -d $'\0' spec; do
-        version=$(grep Version $spec | sed 's^Version[ ]*:[ ]*^^' |sed 's![^\.0-9]!!g' | tr -d '[:space:]' )|| exit 1
+    specs=$(find . -name "*\.spec" -type f)
+    for spec in $specs; do
+        version=$(grep Version $spec | sed 's^Version[ ]*:[ ]*^^' |sed 's![^\.0-9]!!g' | tr -d '[:space:]' )
         # check that version actually is a version number, not a placeholder like %version
-        if [ -n $version ]; then
+        if [ -n "$version" ]; then
             release=$(grep Release $spec| sed 's^Release[ ]*:[ ]*^^'|  sed 's@\([0-9.]\+\)[%.]*.*@\1@g' | tr -d '[:space:]' )
             echo $project_name-$version-$release
             exit
