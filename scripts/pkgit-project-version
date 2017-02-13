@@ -62,8 +62,8 @@ if [ $? = 0 ]; then
     exact_tag=$(git describe --exact 2>/dev/null)
     if [ $? = 0 ]; then
         # Check that the exact tag is for this project
-        variables=$(echo $exact_tag | sed -n 's%\(.*\)-\([0-9].*\)\.\([0-9].*\)\.\([0-9].*\)-\([0-9]\)%exact_tag_package=\1;major=\2;minor=\3;revision=\4;release=\5%' | tr '\n' ' ')
-        if [ -n $variables ]; then
+        variables=$(echo $exact_tag | sed -n 's%\(.*\)-\([0-9].*\)\.\([0-9].*\)\.\([0-9].*\)-\([0-9]\)%exact_tag_package=\1;major=\2;minor=\3;revision=\4;release=\5%p' | tr '\n' ' ')
+        if [ -z "$variables" ]; then
             echo ${project_name}-$version-${sha1}${num_files_changed_extension}
             exit
         fi
