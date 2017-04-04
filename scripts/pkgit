@@ -30,7 +30,7 @@ umask 0002
 usage()
 {
 cat <<EOF
-Usage: $(basename $0) [-h|--help] [--debug] [--version] [--sandbox] [--unclean] [-v|--verbose] [-q|quiet] [-p|--pretend] [-m|--message=<meaningful message>] [-e|--exclude=<pattern>]
+Usage: $(basename $0) [-h|--help] [--debug] [--version] [--sandbox] [--unclean] [-v|--verbose] [-q|quiet] [-p|--pretend] [-s|--spec=specfile] [-m|--message=<meaningful message>] [-e|--exclude=<pattern>]
 
 Publish a package using the spec file in the current directory
 
