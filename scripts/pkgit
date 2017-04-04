@@ -215,9 +215,9 @@ current_specfile_path=$(pwd)
 #
 
 # At this point in time we will only support the source gzipped tarball with the .tgz extension
-grep Source: $spec |grep tgz >/dev/null
+grep Source $spec |grep -E 'tgz|tar.gz' >/dev/null
 if [ $? = 1 ]; then
-    die "At this point in time we will only support the source gzipped tarball with the .tgz extension"
+    die "At this point in time we will only support the source gzipped tarball with the .tgz or .tar.gz extension"
 fi
 
 rpmhome=$(rpm --eval %_topdir)

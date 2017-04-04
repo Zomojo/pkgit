@@ -77,6 +77,13 @@ if [ -z $spec ]; then
     spec=$(ls -1 $(basename ${project_dir})/*.spec |head -1 2> /dev/null)
 fi
 
+# Did the spec file say they want an .tar.gz or a .tgz
+tarball_extension=tar.gz
+grep Source $project_dir/$spec |grep tar.gz
+if [ $? = 1 ]; then
+    tarball_extension=tgz
+fi
+
 # Figure out some information about the repository for later use
 rpmhome=$(pwd)
 current_repo_root=$($script_dir/pkgit-find-repo-root $project_dir)
@@ -153,7 +160,7 @@ fi
 verbose_echo "Building tarball"
 cd $rpmhome/tmp >/dev/null 
 mkdir -p $rpmhome/SOURCES/
-tar -cvzf $rpmhome/SOURCES/${tag_name%-*}.tgz . >/dev/null 2>&1
+tar -cvzf $rpmhome/SOURCES/${tag_name%-*}.${tarball_extension} . >/dev/null 2>&1
 
 
 cd $rpmhome  >/dev/null 
