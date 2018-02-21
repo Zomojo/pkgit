@@ -133,7 +133,7 @@ repo_root=$($script_dir/pkgit-find-repo-root)
 relative_specfile_path=${project_dir#$repo_root}
 mkdir -p $rpmbuild_tmp_project_dir/$relative_specfile_path/  || die "Could not create $relative_specfile_path to build the tarball in"
 if [ -n $verbose ]; then rsync_options="-vv"; else rsync_options="--quiet";fi
-rsync -a --cvs-exclude $rsync_options "$project_dir/" $rpmbuild_tmp_project_dir/$relative_specfile_path/
+rsync -a --cvs-exclude --include='core' $rsync_options "$project_dir/" $rpmbuild_tmp_project_dir/$relative_specfile_path/
 
 #copy in the modified spec file
 cp $rpmhome/SPECS/$spec $rpmbuild_tmp_project_dir/$relative_specfile_path/
