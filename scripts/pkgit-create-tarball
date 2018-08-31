@@ -150,6 +150,11 @@ if [ -e $project_dir/build.sh ] && [ $(grep -c cake $project_dir/build.sh) -gt 0
     if [ $(./build.sh --version 2>&1 |head -1 |cut -f1 -d'.') -gt 3 ]; then
         flistcmd+=" --shorten"
     fi
+    # Add the compile tools config files if they are in the repo
+    if which ct-list-variants >/dev/null 2>&1; then
+        flistcmd+=";$(ct-list-variants --no-shorten --style=flat --repoonly)"
+    fi
+
     eval $flistcmd | while read next_file; do
         newfilename=${next_file#$repo_root}
         mkdir -p $(dirname $rpmbuild_tmp_project_dir/$newfilename)
