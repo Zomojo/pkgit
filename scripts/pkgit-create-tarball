@@ -152,7 +152,7 @@ if [ -e $project_dir/build.sh ] && [ $(grep -c cake $project_dir/build.sh) -gt 0
     fi
     # Add the compile tools config files if they are in the repo
     if which ct-list-variants >/dev/null 2>&1; then
-        flistcmd+=";$(ct-list-variants --no-shorten --style=flat --repoonly)"
+        flistcmd+=";ct-list-variants --shorten --style=flat --repoonly --configname"
     fi
 
     eval $flistcmd | while read next_file; do
