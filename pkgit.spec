@@ -8,7 +8,7 @@ Group: Applications/Other
 Buildroot: %_tmppath/%{name}-%{version}
 BuildRequires: help2man perl-Exporter
 BuildArch: noarch
-Requires: rpmdevtools
+Requires: rpmdevtools, python-compiletools >= 4.1.59
 
 %description
 pkgit - Assuming you are using git and don't mind sticking packaging versions into the git tags, this tool makes it easy to create RPMs.
