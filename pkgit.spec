@@ -6,7 +6,7 @@ Source: %{name}-%{version}.tgz
 License: Proprietary, Redistribution not allowed
 Group: Applications/Other
 Buildroot: %_tmppath/%{name}-%{version}
-BuildRequires: help2man perl-Exporter
+BuildRequires: help2man perl-Exporter rpmdevtools
 BuildArch: noarch
 Requires: rpmdevtools, python3-compiletools >= 4.1.67
 
